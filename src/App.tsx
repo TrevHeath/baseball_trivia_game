@@ -21,7 +21,18 @@ const CATEGORIES = [
 ];
 
 export default function App() {
-  const [sessionId] = useState(() => `session-${Date.now()}-${Math.random()}`);
+  const [sessionId] = useState(() => {
+    // Check if sessionId exists in localStorage
+    const existingSessionId = localStorage.getItem('baseball-trivia-session-id');
+    if (existingSessionId) {
+      return existingSessionId;
+    }
+    
+    // Create new sessionId and store it
+    const newSessionId = `session-${Date.now()}-${Math.random()}`;
+    localStorage.setItem('baseball-trivia-session-id', newSessionId);
+    return newSessionId;
+  });
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
   const [showGameEndModal, setShowGameEndModal] = useState(false);
