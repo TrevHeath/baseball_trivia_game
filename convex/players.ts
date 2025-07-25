@@ -53,13 +53,13 @@ async function fetchStatsFromAPI(): Promise<{
       "avg", // batting average
       "homeRuns", // home runs
       "ops", // OPS
-      "obp", // obp (fewest)
+      "obp", // obp
       "stolenBases", // stolen bases
       "rbi", // RBIs
     ];
 
     const promises = statCategories.map(async (category) => {
-      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&limit=150`;
+      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=hitting&limit=150`;
 
       const response = await fetch(url);
       if (!response.ok) {
