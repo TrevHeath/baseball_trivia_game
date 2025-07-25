@@ -35,7 +35,7 @@ export const createNewGame = mutation({
     sessionId: v.string(),
   },
   handler: async (ctx, args) => {
-    // End any existing game for this session
+    // End any existing game for this session, but only if all 6 rounds are filled
     const existingGame = await ctx.db
       .query("games")
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
@@ -43,7 +43,15 @@ export const createNewGame = mutation({
       .first();
 
     if (existingGame) {
-      await ctx.db.patch(existingGame._id, { isComplete: true });
+      // Check if all 6 rounds are filled
+      const rounds = await ctx.db
+        .query("rounds")
+        .withIndex("by_game", (q) => q.eq("gameId", existingGame._id))
+        .collect();
+      
+      if (rounds.length >= 6) {
+        await ctx.db.patch(existingGame._id, { isComplete: true });
+      }
     }
 
     // Create new game (without players array)

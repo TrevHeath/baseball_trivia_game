@@ -121,7 +121,7 @@ async function selectRandomPlayer(
   // Filter for players who have data in at least 3 of our 6 categories
   const qualifiedPlayers = Array.from(playersMap.values()).filter((player) => {
     const categoryCount = Object.keys(player.stats).length;
-    return categoryCount >= 3;
+    return categoryCount >= 1;
   });
 
   console.log(`Found ${qualifiedPlayers.length} qualified players`);
@@ -147,7 +147,6 @@ async function selectRandomPlayer(
 
     // Fetch detailed player information
     const playerDetails = await fetchPlayerDetails(selectedPlayer.id);
-    console.log("playerDetails", playerDetails);
 
     // Check if player is a batter (not a pitcher)
     if (
@@ -224,8 +223,6 @@ async function fetchPlayerDetails(playerId: string): Promise<{
         player.currentTeam?.name || player.currentTeam?.abbreviation || "MLB";
       const position =
         player.primaryPosition?.name || player.primaryPosition?.abbreviation;
-
-      console.log(`Fetched details for`, player);
 
       return {
         team: teamName,
