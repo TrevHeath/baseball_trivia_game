@@ -152,9 +152,9 @@ export default function App() {
 
   const getScoreDescription = (score: number) => {
     if (score <= 25) return "Hall of fame!";
-    if (score <= 50) return "Superstar!";
-    if (score <= 100) return "All-star!";
-    return "Keep trying!";
+    if (score <= 50) return "All-star!";
+    if (score <= 100) return "Ball player";
+    return "Prospect";
   };
 
   const findBestCategory = (player: any) => {
@@ -679,21 +679,21 @@ export default function App() {
                         <span className="text-yellow-600 font-bold">
                           20-50 points:
                         </span>{" "}
-                        Superstar!
+                        All star!
                       </div>
                       <div>
                         •{" "}
                         <span className="text-orange-600 font-bold">
                           50-100 points:
                         </span>{" "}
-                        All star!
+                        Ball Player
                       </div>
                       <div>
                         •{" "}
                         <span className="text-red-600 font-bold">
                           100+ points:
                         </span>{" "}
-                        Keep trying!
+                        Prospect
                       </div>
                     </div>
                   </div>
