@@ -101,12 +101,9 @@ export default function App() {
           CATEGORIES.find((c) => c.id === categoryId)?.name || categoryId;
 
         if (actualRank === 1) {
-          toast.success(
-            `🏆 Perfect! ${selectedCategoryName} is their #1 stat!`,
-            {
-              duration: 3000,
-            }
-          );
+          toast.success(`🏆 Perfect! They are #1 in ${selectedCategoryName}!`, {
+            duration: 3000,
+          });
         } else if (actualRank <= 10) {
           toast.success(
             `🎯 Great choice! #${actualRank} in ${selectedCategoryName}`,
