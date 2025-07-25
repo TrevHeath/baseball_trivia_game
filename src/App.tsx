@@ -23,14 +23,16 @@ const CATEGORIES = [
 export default function App() {
   const [sessionId] = useState(() => {
     // Check if sessionId exists in localStorage
-    const existingSessionId = localStorage.getItem('baseball-trivia-session-id');
+    const existingSessionId = localStorage.getItem(
+      "baseball-trivia-session-id"
+    );
     if (existingSessionId) {
       return existingSessionId;
     }
-    
+
     // Create new sessionId and store it
     const newSessionId = `session-${Date.now()}-${Math.random()}`;
-    localStorage.setItem('baseball-trivia-session-id', newSessionId);
+    localStorage.setItem("baseball-trivia-session-id", newSessionId);
     return newSessionId;
   });
   const [showResult, setShowResult] = useState(false);
@@ -60,7 +62,7 @@ export default function App() {
       // Show modal after a short delay
       setTimeout(() => {
         setShowGameEndModal(true);
-      }, 1000);
+      }, 100);
     }
   }, [gameHistory?.game?.isComplete, gameHistory?.game?.totalScore]);
 
@@ -191,8 +193,8 @@ export default function App() {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            ⚾ MLB Stats Challenge
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            ⚾ Basebally Stats Challenge
           </h1>
           <p className="text-gray-600">
             Guess which category each player ranks highest in!
@@ -220,7 +222,7 @@ export default function App() {
                   points!
                 </p>
                 <p className="text-sm text-blue-600 font-medium">
-                  • Using real MLB stats from the current season!
+                  • Using MLB stats from the current season!
                 </p>
               </div>
             </div>
@@ -244,18 +246,18 @@ export default function App() {
                   <div className="text-sm text-gray-600">
                     Round {currentGame.game.currentRound} of 6
                   </div>
-                  <div className="flex items-center gap-3">
-                    {lastResult && (
-                      <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium border border-green-200">
-                        Last: #{lastResult.actualRank}
-                      </div>
-                    )}
+                  <div className="flex flex-1 flex-wrap justify-end items-center gap-3">
                     <div className="text-sm text-gray-600 bg-blue-50 px-3 py-1 rounded-full">
                       Total Score:{" "}
                       <span className="font-semibold">
                         {currentGame.game.totalScore}
                       </span>
                     </div>
+                    {lastResult && (
+                      <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium border border-green-200">
+                        Last Choice: #{lastResult.actualRank}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
@@ -294,40 +296,27 @@ export default function App() {
                             #{currentGame.player.number || "Unknown"}
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 text-lg">
+                        {/* <div className="flex items-center gap-1 text-lg flex-wrap">
                           {currentGame.player.height && (
                             <span className="text-gray-600">
                               {currentGame.player.height}
                             </span>
                           )}
-                          -
                           {currentGame.player.weight && (
                             <span className="text-gray-600">
                               {currentGame.player.weight}
                             </span>
                           )}
-                          -
                           {currentGame.player.birthDate && (
                             <span className="text-gray-600">
                               {currentGame.player.birthDate}
                             </span>
                           )}
-                        </div>
+                        </div> */}
                       </div>
                     </div>
                     <div className="text-6xl">⚾</div>
                   </div>
-                </div>
-
-                {/* Question */}
-                <div className="text-center">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                    Which category does {currentGame.player.name.split(" ")[0]}{" "}
-                    rank highest in?
-                  </h3>
-                  <p className="text-gray-600">
-                    Choose the stat where they rank closest to #1
-                  </p>
                 </div>
               </div>
 
@@ -435,7 +424,7 @@ export default function App() {
                 {/* High Score Section */}
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex">
                       <h3 className="font-semibold text-yellow-800">
                         🏆 Your Best Score
                       </h3>
@@ -512,7 +501,7 @@ export default function App() {
                       </span>
                     </div>
                     <div>
-                      <span className="text-blue-600">Average Rank:</span>
+                      <span className="text-blue-600">Average:</span>
                       <span className="font-semibold ml-2">
                         #{Math.round(gameHistory.game.totalScore / 6)}
                       </span>
