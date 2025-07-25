@@ -486,6 +486,15 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+                {/* Action Buttons */}
+                <div className="flex gap-3  bottom-4 left-0 right-0">
+                  <button
+                    onClick={handleStartGame}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 my-5 rounded-lg transition-colors"
+                  >
+                    🎮 Play Again
+                  </button>
+                </div>
                 {/* Round Summary */}
                 <div className="mb-6">
                   <h3 className="text-xl font-semibold mb-4">Round by Round</h3>
@@ -522,16 +531,6 @@ export default function App() {
                       </div>
                     ))}
                   </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3  bottom-4 left-0 right-0">
-                  <button
-                    onClick={handleStartGame}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
-                  >
-                    🎮 Play Again
-                  </button>
                 </div>
 
                 {/* Buy Me a Beer Button in Modal */}
