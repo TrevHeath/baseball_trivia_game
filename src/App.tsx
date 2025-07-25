@@ -144,16 +144,16 @@ export default function App() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score <= 25) return "text-green-600";
-    if (score <= 50) return "text-yellow-600";
-    if (score <= 100) return "text-orange-600";
+    if (score <= 100) return "text-green-600";
+    if (score <= 200) return "text-yellow-600";
+    if (score <= 300) return "text-orange-600";
     return "text-red-600";
   };
 
   const getScoreDescription = (score: number) => {
-    if (score <= 25) return "Hall of fame!";
-    if (score <= 50) return "All-star!";
-    if (score <= 100) return "Ball player";
+    if (score <= 100) return "Hall of fame!";
+    if (score <= 200) return "All-star!";
+    if (score <= 300) return "Ball player";
     return "Prospect";
   };
 
@@ -260,6 +260,10 @@ export default function App() {
                 <p className="text-sm text-blue-600 font-medium">
                   • Using MLB stats from the current season!
                 </p>
+                <p className="text-sm text-blue-600 font-medium">
+                  • Players not qualified for a category will be ranked last in
+                  that category.
+                </p>
               </div>
             </div>
             <button
@@ -270,7 +274,21 @@ export default function App() {
             </button>
           </div>
         )}
-
+        {currentGame?.game &&
+          !currentGame.game.isComplete &&
+          !currentGame.player && (
+            <div className="text-center animate-fade-in">
+              <div className="bg-white rounded-xl shadow-xl p-8 mb-6 border-2 border-blue-200">
+                <h2 className="text-3xl font-bold text-blue-600 mb-4">
+                  Batter steps to the plate...
+                </h2>
+                <p className="text-gray-700">
+                  Please wait while we fetch your player...
+                </p>
+              </div>
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4 shadow-lg"></div>
+            </div>
+          )}
         {/* Active game */}
         {currentGame?.game &&
           !currentGame.game.isComplete &&
@@ -633,6 +651,10 @@ export default function App() {
                         points!
                       </li>
                       <li>• Using MLB stats from the current season!</li>
+                      <li>
+                        • Players not qualified for a category will be ranked
+                        last in that category.
+                      </li>
                     </ul>
                   </div>
 
@@ -670,28 +692,28 @@ export default function App() {
                       <div>
                         •{" "}
                         <span className="text-green-600 font-bold">
-                          1-20 points:
+                          1-100 points:
                         </span>{" "}
                         Hall of fame!
                       </div>
                       <div>
                         •{" "}
                         <span className="text-yellow-600 font-bold">
-                          20-50 points:
+                          100-200 points:
                         </span>{" "}
                         All star!
                       </div>
                       <div>
                         •{" "}
                         <span className="text-orange-600 font-bold">
-                          50-100 points:
+                          200-300 points:
                         </span>{" "}
                         Ball Player
                       </div>
                       <div>
                         •{" "}
                         <span className="text-red-600 font-bold">
-                          100+ points:
+                          300+ points:
                         </span>{" "}
                         Prospect
                       </div>
