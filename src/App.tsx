@@ -41,6 +41,7 @@ export default function App() {
   const [lastShownGameId, setLastShownGameId] = useState<string | null>(() => {
     return localStorage.getItem("last-shown-game-id");
   });
+  const [showRulesModal, setShowRulesModal] = useState(false);
 
   const currentGame = useQuery(api.game.getCurrentGame, { sessionId });
 
@@ -77,11 +78,11 @@ export default function App() {
     lastShownGameId,
   ]);
 
-  const handleStartGame = async () => {
+  const handleStartGame = () => {
     setShowResult(false);
     setLastResult(null);
     setShowGameEndModal(false);
-    await startNewGame({ sessionId });
+    void startNewGame({ sessionId });
   };
 
   const handleCategorySelect = async (categoryId: string) => {
@@ -143,16 +144,16 @@ export default function App() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score <= 12) return "text-green-600";
-    if (score <= 24) return "text-yellow-600";
-    if (score <= 36) return "text-orange-600";
+    if (score <= 25) return "text-green-600";
+    if (score <= 50) return "text-yellow-600";
+    if (score <= 100) return "text-orange-600";
     return "text-red-600";
   };
 
   const getScoreDescription = (score: number) => {
-    if (score <= 12) return "Excellent!";
-    if (score <= 24) return "Good job!";
-    if (score <= 36) return "Not bad!";
+    if (score <= 25) return "Hall of fame!";
+    if (score <= 50) return "Superstar!";
+    if (score <= 100) return "All-star!";
     return "Keep trying!";
   };
 
@@ -187,12 +188,26 @@ export default function App() {
 
   if (currentGame === undefined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-100 via-blue-100 to-purple-100 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading game...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-200 border-t-emerald-600 mx-auto mb-4 shadow-lg"></div>
+          <p className="text-gray-700 text-lg font-medium animate-pulse">
+            Loading your baseball adventure...
+          </p>
         </div>
-        <Toaster />
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          theme="light"
+          toastOptions={{
+            style: {
+              fontSize: "16px",
+              padding: "16px 20px",
+              minHeight: "64px",
+            },
+          }}
+        />
       </div>
     );
   }
@@ -200,23 +215,33 @@ export default function App() {
   // usedCategories is now from the query above
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-100 via-blue-100 to-purple-100 p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            ⚾ Basebally Stats Challenge
+        <div className="relative text-center mb-8 animate-fade-in">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 animate-bounce-subtle">
+            Basebally Stats Challenge
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-700 text-lg font-medium">
             Guess which category each player ranks highest in!
           </p>
+
+          {/* Rules Button */}
+          <button
+            onClick={() => setShowRulesModal(true)}
+            className="absolute top-0 right-0 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-sm"
+          >
+            📖 Rules
+          </button>
         </div>
 
         {/* Game not started */}
         {!currentGame?.game && (
-          <div className="text-center">
-            <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-              <h2 className="text-2xl font-semibold mb-4">How to Play</h2>
+          <div className="text-center animate-slide-up">
+            <div className="bg-white rounded-xl shadow-xl p-8 mb-6 border-2 border-emerald-200 transform hover:scale-105 transition-all duration-300">
+              <h2 className="text-3xl font-bold text-emerald-600 mb-4">
+                How to Play
+              </h2>
               <div className="text-left max-w-2xl mx-auto space-y-3 text-gray-700">
                 <p>• You'll see 6 random MLB players, one at a time</p>
                 <p>
@@ -239,9 +264,9 @@ export default function App() {
             </div>
             <button
               onClick={handleStartGame}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors shadow-lg"
+              className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 animate-pulse-slow"
             >
-              Start New Game
+              🚀 Start New Game
             </button>
           </div>
         )}
@@ -252,28 +277,28 @@ export default function App() {
           currentGame.player && (
             <div className="space-y-6">
               {/* Progress and Score */}
-              <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="bg-white rounded-xl shadow-xl p-6 border-2 border-blue-200 animate-slide-in">
                 <div className="flex justify-between items-center mb-4">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-lg font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border-2 border-emerald-200">
                     Round {currentGame.game.currentRound} of 6
                   </div>
                   <div className="flex flex-1 flex-wrap justify-end items-center gap-3">
-                    <div className="text-sm text-gray-600 bg-blue-50 px-3 py-1 rounded-full">
+                    <div className="text-lg font-bold text-blue-600 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-full border-2 border-blue-200">
                       Total Score:{" "}
-                      <span className="font-semibold">
+                      <span className="text-purple-600">
                         {currentGame.game.totalScore}
                       </span>
                     </div>
                     {lastResult && (
-                      <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium border border-green-200">
+                      <div className="bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 px-4 py-2 rounded-full text-lg font-bold border-2 border-emerald-300 animate-bounce-in">
                         Last Choice: #{lastResult.actualRank}
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                   <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-emerald-500 to-blue-600 h-3 rounded-full transition-all duration-700 ease-out shadow-lg"
                     style={{
                       width: `${(currentGame.game.currentRound / 6) * 100}%`,
                     }}
@@ -284,13 +309,13 @@ export default function App() {
               {/* Player Card */}
               <div
                 key={`${currentGame.player.playerId}-${currentGame.game.currentRound}`}
-                className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-xl p-8 border-2 border-blue-200"
+                className="bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 rounded-2xl shadow-2xl p-8 border-4 border-gradient-to-r from-emerald-200 to-purple-200 transform hover:scale-105 transition-all duration-500 animate-slide-up"
               >
                 {/* Baseball Card Header */}
-                <div className="bg-white rounded-lg p-6 mb-6 shadow-md">
+                <div className="bg-gradient-to-r from-white to-gray-50 rounded-xl p-6 mb-6 shadow-lg border-2 border-emerald-100">
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-left">
-                      <h2 className="text-3xl font-bold text-gray-800 mb-1">
+                      <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent mb-1 animate-fade-in">
                         {currentGame.player.name}
                       </h2>
                       <div className="flex-column items-center gap-4 text-lg">
@@ -326,7 +351,7 @@ export default function App() {
                         </div> */}
                       </div>
                     </div>
-                    <div className="text-6xl">⚾</div>
+                    <div className="text-8xl animate-bounce-slow">⚾</div>
                   </div>
                 </div>
               </div>
@@ -351,30 +376,41 @@ export default function App() {
 
               {/* Category Selection */}
               {!showResult && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {CATEGORIES.map((category) => {
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-stagger-in">
+                  {CATEGORIES.map((category, index) => {
                     const isUsed =
                       usedCategories?.includes(category.id) || false;
                     return (
                       <button
                         key={category.id}
-                        onClick={() =>
-                          !isUsed && handleCategorySelect(category.id)
-                        }
+                        onClick={() => {
+                          if (!isUsed) {
+                            void handleCategorySelect(category.id);
+                          }
+                        }}
                         disabled={isUsed}
-                        className={`border-2 rounded-lg p-6 text-left transition-all duration-200 shadow-sm ${
+                        className={`border-3 rounded-xl p-6 text-left transition-all duration-300 shadow-lg transform hover:scale-105 animate-delay-${index} ${
                           isUsed
-                            ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed"
-                            : "bg-white hover:bg-blue-50 border-gray-200 hover:border-blue-300 hover:shadow-md"
+                            ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60"
+                            : "bg-gradient-to-br from-white to-blue-50 hover:from-emerald-50 hover:to-purple-50 border-blue-200 hover:border-emerald-400 hover:shadow-xl"
                         }`}
+                        style={{
+                          animationDelay: `${index * 0.1}s`,
+                        }}
                       >
-                        <h4 className="font-semibold text-lg mb-2">
+                        <h4
+                          className={`font-bold text-xl mb-3 ${isUsed ? "text-gray-400" : "text-emerald-600"}`}
+                        >
                           {category.name}
                         </h4>
-                        <p className="text-sm">{category.description}</p>
+                        <p
+                          className={`text-sm ${isUsed ? "text-gray-400" : "text-gray-700"}`}
+                        >
+                          {category.description}
+                        </p>
                         {isUsed && (
-                          <p className="text-xs mt-2 font-medium">
-                            Already selected
+                          <p className="text-xs mt-3 font-bold text-red-500 bg-red-50 px-2 py-1 rounded-full">
+                            ✓ Already selected
                           </p>
                         )}
                       </button>
@@ -403,9 +439,9 @@ export default function App() {
               </p>
               <button
                 onClick={handleStartGame}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors shadow-lg"
+                className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
               >
-                Play Again
+                🎮 Play Again
               </button>
             </div>
           </div>
@@ -490,7 +526,7 @@ export default function App() {
                 <div className="flex gap-3  bottom-4 left-0 right-0">
                   <button
                     onClick={handleStartGame}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 my-5 rounded-lg transition-colors"
+                    className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold py-4 px-8 my-5 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
                   >
                     🎮 Play Again
                   </button>
@@ -548,8 +584,148 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* Rules Modal */}
+        {showRulesModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative animate-slide-up">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-2xl">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-3xl font-bold">📖 How to Play</h2>
+                  <button
+                    onClick={() => setShowRulesModal(false)}
+                    className="text-white hover:text-gray-200 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:bg-opacity-20 transition-all"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6">
+                <div className="text-left space-y-4 text-gray-700">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                    <h3 className="font-bold text-emerald-600 mb-2">
+                      🎯 Objective
+                    </h3>
+                    <p>
+                      You'll see 6 random MLB players, one at a time. For each
+                      player, choose the category where you think they rank{" "}
+                      <strong>highest</strong> (closest to #1).
+                    </p>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="font-bold text-blue-600 mb-2">
+                      🎮 Game Rules
+                    </h3>
+                    <ul className="space-y-2">
+                      <li>
+                        • Each category can only be selected once per game
+                      </li>
+                      <li>
+                        • Your score is the sum of their actual ranks in your
+                        chosen categories
+                      </li>
+                      <li>
+                        • Lower scores are better - a perfect game scores just 6
+                        points!
+                      </li>
+                      <li>• Using MLB stats from the current season!</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h3 className="font-bold text-purple-600 mb-2">
+                      📊 Categories
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        • <strong>Batting Average</strong> - Highest BA
+                      </div>
+                      <div>
+                        • <strong>Home Runs</strong> - Most HRs
+                      </div>
+                      <div>
+                        • <strong>OPS</strong> - Highest OPS
+                      </div>
+                      <div>
+                        • <strong>OBP</strong> - Highest OBP
+                      </div>
+                      <div>
+                        • <strong>Stolen Bases</strong> - Most SBs
+                      </div>
+                      <div>
+                        • <strong>RBIs</strong> - Most RBIs
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h3 className="font-bold text-yellow-600 mb-2">
+                      🏆 Scoring
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        •{" "}
+                        <span className="text-green-600 font-bold">
+                          1-20 points:
+                        </span>{" "}
+                        Hall of fame!
+                      </div>
+                      <div>
+                        •{" "}
+                        <span className="text-yellow-600 font-bold">
+                          20-50 points:
+                        </span>{" "}
+                        Superstar!
+                      </div>
+                      <div>
+                        •{" "}
+                        <span className="text-orange-600 font-bold">
+                          50-100 points:
+                        </span>{" "}
+                        All star!
+                      </div>
+                      <div>
+                        •{" "}
+                        <span className="text-red-600 font-bold">
+                          100+ points:
+                        </span>{" "}
+                        Keep trying!
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Close Button */}
+                <div className="flex justify-center mt-6">
+                  <button
+                    onClick={() => setShowRulesModal(false)}
+                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    Got it! 🚀
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      <Toaster />
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        theme="light"
+        toastOptions={{
+          style: {
+            fontSize: "16px",
+            padding: "16px 20px",
+            minHeight: "64px",
+          },
+        }}
+      />
 
       {/* Buy Me a Beer Button */}
       <div className="text-center mt-8">
