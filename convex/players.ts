@@ -106,7 +106,7 @@ async function fetchStatsFromAPI(): Promise<{
       const category = statCategories[index];
 
       const leaders = result.leagueLeaders?.[0]?.leaders || [];
-
+      console.log(category, leaders.length);
       // Track the total number of qualified players for this category
       categoryCounts[category] = leaders.length;
 

@@ -6,7 +6,7 @@ export const startNewGame = action({
   args: { sessionId: v.string(), gameMode: v.optional(v.string()) },
   handler: async (ctx, args): Promise<any> => {
     const mode = args.gameMode || "batters";
-    
+
     // Create the game first, then fetch the first player
     const gameId: any = await ctx.runMutation(api.game.createNewGame, {
       sessionId: args.sessionId,
@@ -14,9 +14,12 @@ export const startNewGame = action({
     });
 
     // Fetch the first player for round 1 based on game mode
-    const playerAction = mode === "pitchers" ? api.players.getRandomPitcher : api.players.getRandomPlayer;
+    const playerAction =
+      mode === "pitchers"
+        ? api.players.getRandomPitcher
+        : api.players.getRandomPlayer;
     const playerResult: any = await ctx.runAction(playerAction, {});
-    
+
     if (!playerResult.success || !playerResult.player) {
       throw new Error("Failed to fetch first player");
     }
@@ -140,9 +143,12 @@ export const selectCategory = action({
     // If game is not complete, fetch next player
     if (!result.isGameComplete) {
       console.log(`Fetching new player for round ${result.nextRound}`);
-      
+
       // Determine which player action to use based on game mode
-      const playerAction = result.gameMode === "pitchers" ? api.players.getRandomPitcher : api.players.getRandomPlayer;
+      const playerAction =
+        result.gameMode === "pitchers"
+          ? api.players.getRandomPitcher
+          : api.players.getRandomPlayer;
       const playerResult: any = await ctx.runAction(playerAction, {});
 
       if (playerResult.success && playerResult.player) {
@@ -193,7 +199,7 @@ export const updateRoundWithSelection = mutation({
     // Get the rank for the selected category based on game mode
     const gameMode = game.gameMode || "batters";
     let categoryRankMap: Record<string, number>;
-    
+
     if (gameMode === "pitchers") {
       categoryRankMap = {
         era: player.eraRank,
@@ -309,16 +315,31 @@ export const getGameHistory = query({
 });
 
 export const getAllGameHistory = query({
-  args: { sessionId: v.string() },
+  args: { sessionId: v.string(), gameMode: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const completedGames = await ctx.db
+    let completedGames = ctx.db
       .query("games")
       .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
-      .filter((q) => q.eq(q.field("isComplete"), true))
-      .order("desc")
-      .collect();
+      .filter((q) => q.eq(q.field("isComplete"), true));
 
-    return completedGames;
+    if (args.gameMode === "pitchers") {
+      // For pitchers, only include games explicitly marked as pitchers
+      completedGames = completedGames.filter((q) =>
+        q.eq(q.field("gameMode"), "pitchers")
+      );
+    } else if (args.gameMode === "batters") {
+      // For batters, include both "batters" and undefined (backwards compatibility)
+      completedGames = completedGames.filter((q) =>
+        q.or(
+          q.eq(q.field("gameMode"), "batters"),
+          q.eq(q.field("gameMode"), undefined)
+        )
+      );
+    }
+
+    const cgs = await completedGames.order("desc").collect();
+
+    return cgs;
   },
 });
 
@@ -371,14 +392,16 @@ export const getHighScores = query({
       .query("games")
       .filter((q) => q.eq(q.field("isComplete"), true))
       .filter((q) => q.neq(q.field("completedAt"), undefined));
-      
+
     // Filter by game mode if specified
     if (args.gameMode === "pitchers") {
       // For pitchers, only include games explicitly marked as pitchers
-      gamesQuery = gamesQuery.filter((q) => q.eq(q.field("gameMode"), "pitchers"));
+      gamesQuery = gamesQuery.filter((q) =>
+        q.eq(q.field("gameMode"), "pitchers")
+      );
     } else if (args.gameMode === "batters") {
       // For batters, include both "batters" and undefined (backwards compatibility)
-      gamesQuery = gamesQuery.filter((q) => 
+      gamesQuery = gamesQuery.filter((q) =>
         q.or(
           q.eq(q.field("gameMode"), "batters"),
           q.eq(q.field("gameMode"), undefined)
@@ -386,7 +409,7 @@ export const getHighScores = query({
       );
     }
     // If args.gameMode is undefined, include all games (no additional filter)
-    
+
     const allCompletedGames = await gamesQuery.collect();
 
     // Filter for today's games (since midnight PST)

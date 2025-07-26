@@ -70,8 +70,16 @@ export default function App() {
 
   const currentGame = useQuery(api.game.getCurrentGame, { sessionId });
 
+  useEffect(() => {
+    if (currentGame?.game?.gameMode)
+      setGameMode(currentGame?.game?.gameMode as "batters" | "pitchers"); // Default to "batters" if not set
+  }, [currentGame]);
+
   const gameHistory = useQuery(api.game.getGameHistory, { sessionId });
-  const allGameHistory = useQuery(api.game.getAllGameHistory, { sessionId });
+  const allGameHistory = useQuery(api.game.getAllGameHistory, {
+    sessionId,
+    gameMode,
+  });
   const usedCategories = useQuery(api.game.getUsedCategories, { sessionId });
   // Get high scores for the specific game mode of the completed game
   const completedGameMode = gameHistory?.game?.gameMode || "batters";
@@ -131,10 +139,10 @@ export default function App() {
           currentGameMode
         );
         const actualRank = result.actualRank;
-        console.log(result, currentGame);
+
         const selectedCategoryName =
           CATEGORIES.find((c) => c.id === categoryId)?.name || categoryId;
-        console.log(result);
+
         if (actualRank === 1) {
           toast.success(`🏆 Perfect! They are #1 in ${selectedCategoryName}!`, {
             duration: 3000,
