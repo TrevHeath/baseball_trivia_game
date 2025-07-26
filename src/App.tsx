@@ -100,7 +100,7 @@ export default function App() {
         const actualRank = result.actualRank;
         const selectedCategoryName =
           CATEGORIES.find((c) => c.id === categoryId)?.name || categoryId;
-
+        console.log(result);
         if (actualRank === 1) {
           toast.success(`🏆 Perfect! They are #1 in ${selectedCategoryName}!`, {
             duration: 3000,
@@ -214,23 +214,22 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-100 via-blue-100 to-purple-100 p-4">
+      {/* nav */}
+      <button
+        onClick={() => setShowRulesModal(true)}
+        className=" bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-sm fixed bottom-4 right-4 z-50"
+      >
+        📖 Rules
+      </button>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="relative text-center mb-8 animate-fade-in">
+        <div className="relative text-center my-8 animate-fade-in">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 animate-bounce-subtle">
             Basebally Challenge
           </h1>
           <p className="text-gray-700 text-lg font-medium">
             How well do you know the game?
           </p>
-
-          {/* Rules Button */}
-          <button
-            onClick={() => setShowRulesModal(true)}
-            className="absolute top-0 right-0 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-sm"
-          >
-            📖 Rules
-          </button>
         </div>
 
         {/* Game not started */}
@@ -295,30 +294,29 @@ export default function App() {
               {/* Progress and Score */}
               <div className="bg-white rounded-xl shadow-xl p-6 border-2 border-blue-200 animate-slide-in">
                 <div className="flex justify-between items-center mb-4">
-                  <div className="text-lg font-bold text-emerald-600 bg-emerald-50 px-4 py-2 rounded-full border-2 border-emerald-200">
-                    Round {currentGame.game.currentRound} of 6
-                  </div>
-                  <div className="flex flex-1 flex-wrap justify-end items-center gap-3">
-                    <div className="text-lg font-bold text-blue-600 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-full border-2 border-blue-200">
-                      Total Score:{" "}
+                  <div className="flex flex-1 flex-wrap justify-end items-center gap-3 w-full">
+                    <div className="flex-1 text-md font-bold text-blue-600 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-full border-2 border-blue-200">
+                      Score:{" "}
                       <span className="text-purple-600">
                         {currentGame.game.totalScore}
                       </span>
                     </div>
                     {lastResult && (
-                      <div className="bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 px-4 py-2 rounded-full text-lg font-bold border-2 border-emerald-300 animate-bounce-in">
-                        Last Choice: #{lastResult.actualRank}
+                      <div className="flex-1 text-md font-bold text-emerald-600 bg-gradient-to-r from-emerald-50 to-purple-50 px-4 py-2 rounded-full border-2 border-emerald-200">
+                        Last: #{lastResult.actualRank}
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
+                <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
                   <div
-                    className="bg-gradient-to-r from-emerald-500 to-blue-600 h-3 rounded-full transition-all duration-700 ease-out shadow-lg"
+                    className="bg-gradient-to-r from-emerald-500 to-blue-600 h-4 rounded-full transition-all duration-700 ease-out shadow-lg text-white text-center text-xs"
                     style={{
                       width: `${(currentGame.game.currentRound / 6) * 100}%`,
                     }}
-                  ></div>
+                  >
+                    Round {currentGame.game.currentRound} of 6
+                  </div>
                 </div>
               </div>
 
@@ -328,27 +326,27 @@ export default function App() {
                 className="bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 rounded-2xl shadow-2xl p-8 border-4 border-gradient-to-r from-emerald-200 to-purple-200 transform hover:scale-105 transition-all duration-500 animate-slide-up"
               >
                 {/* Baseball Card Header */}
-                <div className="bg-gradient-to-r from-white to-gray-50 rounded-xl p-6 mb-6 shadow-lg border-2 border-emerald-100">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="text-left">
-                      <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent mb-1 animate-fade-in">
-                        {currentGame.player.name}
-                      </h2>
-                      <div className="flex-column items-center gap-4 text-lg">
-                        <div className="flex items-center gap-4 text-lg">
-                          {/* <span className="bg-blue-600 text-white px-3 py-1 rounded-full font-semibold">
+
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-left">
+                    <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent mb-1 animate-fade-in">
+                      {currentGame.player.name}
+                    </h2>
+                    <div className="flex-column items-center gap-4 text-lg">
+                      <div className="flex items-center gap-4 text-lg">
+                        {/* <span className="bg-blue-600 text-white px-3 py-1 rounded-full font-semibold">
                           {currentGame.player.team}
                         </span> */}
-                          {currentGame.player.position && (
-                            <span className="text-gray-600">
-                              {currentGame.player.position}
-                            </span>
-                          )}
+                        {currentGame.player.position && (
                           <span className="text-gray-600">
-                            #{currentGame.player.number || "Unknown"}
+                            {currentGame.player.position}
                           </span>
-                        </div>
-                        {/* <div className="flex items-center gap-1 text-lg flex-wrap">
+                        )}
+                        <span className="text-gray-600">
+                          #{currentGame.player.number || "Unknown"}
+                        </span>
+                      </div>
+                      {/* <div className="flex items-center gap-1 text-lg flex-wrap">
                           {currentGame.player.height && (
                             <span className="text-gray-600">
                               {currentGame.player.height}
@@ -365,10 +363,9 @@ export default function App() {
                             </span>
                           )}
                         </div> */}
-                      </div>
                     </div>
-                    <div className="text-8xl animate-bounce-slow">⚾</div>
                   </div>
+                  <div className="text-8xl animate-bounce-slow">⚾</div>
                 </div>
               </div>
 

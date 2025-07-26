@@ -140,6 +140,7 @@ export const selectCategory = action({
         api.players.getRandomPlayer,
         {}
       );
+
       if (playerResult.success && playerResult.player) {
         console.log(
           `Adding new player: ${playerResult.player.name} for round ${result.nextRound}`
@@ -306,38 +307,44 @@ export const getHighScores = query({
   handler: async (ctx) => {
     // Get current time in PST/PDT
     const now = new Date();
-    
+
     // PST is UTC-8, PDT is UTC-7. We'll use a simple approach to determine DST
     // DST in US typically runs from 2nd Sunday in March to 1st Sunday in November
     const year = now.getUTCFullYear();
-    
+
     // Find 2nd Sunday in March
     const firstSundayMarch = new Date(year, 2, 1);
-    firstSundayMarch.setDate(1 + (7 - firstSundayMarch.getDay()) % 7);
+    firstSundayMarch.setDate(1 + ((7 - firstSundayMarch.getDay()) % 7));
     const secondSundayMarch = new Date(firstSundayMarch);
     secondSundayMarch.setDate(firstSundayMarch.getDate() + 7);
-    
-    // Find 1st Sunday in November  
+
+    // Find 1st Sunday in November
     const firstSundayNov = new Date(year, 10, 1);
-    firstSundayNov.setDate(1 + (7 - firstSundayNov.getDay()) % 7);
-    
+    firstSundayNov.setDate(1 + ((7 - firstSundayNov.getDay()) % 7));
+
     // Determine if we're in DST (PDT = UTC-7) or PST (UTC-8)
     const isDST = now >= secondSundayMarch && now < firstSundayNov;
     const pstOffset = isDST ? -7 : -8; // hours from UTC
-    
+
     // Get current time in PST/PDT
-    const pstNow = new Date(now.getTime() + (pstOffset * 60 * 60 * 1000));
-    
+    const pstNow = new Date(now.getTime() + pstOffset * 60 * 60 * 1000);
+
     // Get start of today in PST (midnight PST)
-    const startOfTodayPST = new Date(pstNow.getFullYear(), pstNow.getMonth(), pstNow.getDate());
+    const startOfTodayPST = new Date(
+      pstNow.getFullYear(),
+      pstNow.getMonth(),
+      pstNow.getDate()
+    );
     // Convert back to UTC timestamp for database comparison
-    const startOfTodayUTC = startOfTodayPST.getTime() - (pstOffset * 60 * 60 * 1000);
-    
+    const startOfTodayUTC =
+      startOfTodayPST.getTime() - pstOffset * 60 * 60 * 1000;
+
     // Get start of 7 days ago in PST (midnight PST)
     const startOfSevenDaysAgoPST = new Date(startOfTodayPST);
     startOfSevenDaysAgoPST.setDate(startOfSevenDaysAgoPST.getDate() - 7);
     // Convert back to UTC timestamp for database comparison
-    const startOfSevenDaysAgoUTC = startOfSevenDaysAgoPST.getTime() - (pstOffset * 60 * 60 * 1000);
+    const startOfSevenDaysAgoUTC =
+      startOfSevenDaysAgoPST.getTime() - pstOffset * 60 * 60 * 1000;
 
     // Get all completed games
     const allCompletedGames = await ctx.db
