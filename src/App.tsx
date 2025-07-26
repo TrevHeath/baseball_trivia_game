@@ -48,6 +48,7 @@ export default function App() {
   const gameHistory = useQuery(api.game.getGameHistory, { sessionId });
   const allGameHistory = useQuery(api.game.getAllGameHistory, { sessionId });
   const usedCategories = useQuery(api.game.getUsedCategories, { sessionId });
+  const highScores = useQuery(api.game.getHighScores, {});
   const startNewGame = useAction(api.game.startNewGame);
   const selectCategory = useAction(api.game.selectCategory);
 
@@ -501,6 +502,53 @@ export default function App() {
                     )}
                   </div>
                 </div>
+
+                {/* Global High Scores Section */}
+                {highScores && (
+                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 mb-6">
+                    <h3 className="font-semibold text-purple-800 mb-3">
+                      🌟 Global High Scores
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white rounded-lg p-3 border border-purple-100">
+                        <div className="text-center">
+                          <div className="text-sm text-purple-600 font-medium">Today's Best</div>
+                          <div className="text-2xl font-bold text-purple-800">
+                            {highScores.todayBestScore !== null ? highScores.todayBestScore : "—"}
+                          </div>
+                          <div className="text-xs text-purple-500">
+                            {highScores.todayGamesCount} game{highScores.todayGamesCount !== 1 ? 's' : ''} played
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-white rounded-lg p-3 border border-purple-100">
+                        <div className="text-center">
+                          <div className="text-sm text-purple-600 font-medium">Week's Best</div>
+                          <div className="text-2xl font-bold text-purple-800">
+                            {highScores.weekBestScore !== null ? highScores.weekBestScore : "—"}
+                          </div>
+                          <div className="text-xs text-purple-500">
+                            {highScores.weekGamesCount} game{highScores.weekGamesCount !== 1 ? 's' : ''} played
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Achievement badges */}
+                    <div className="mt-3 flex flex-wrap gap-2 justify-center">
+                      {gameHistory.game.totalScore === highScores.todayBestScore && highScores.todayBestScore !== null && (
+                        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+                          🥇 TODAY'S CHAMPION!
+                        </div>
+                      )}
+                      {gameHistory.game.totalScore === highScores.weekBestScore && highScores.weekBestScore !== null && (
+                        <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+                          👑 WEEKLY CHAMPION!
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {/* Stats Summary */}
                 <div className="bg-blue-50 rounded-lg p-4 mb-6">
                   <h3 className="font-semibold text-blue-800 mb-2">

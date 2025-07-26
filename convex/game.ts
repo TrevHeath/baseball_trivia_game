@@ -48,7 +48,7 @@ export const createNewGame = mutation({
         .query("rounds")
         .withIndex("by_game", (q) => q.eq("gameId", existingGame._id))
         .collect();
-      
+
       if (rounds.length >= 6) {
         await ctx.db.patch(existingGame._id, { isComplete: true });
       }
@@ -298,5 +298,49 @@ export const getAllGameHistory = query({
       .collect();
 
     return completedGames;
+  },
+});
+
+export const getHighScores = query({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000; // 24 hours ago
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000; // 7 days ago
+
+    // Get all completed games
+    const allCompletedGames = await ctx.db
+      .query("games")
+      .filter((q) => q.eq(q.field("isComplete"), true))
+      .filter((q) => q.neq(q.field("completedAt"), undefined))
+      .collect();
+
+    // Filter for today's games (last 24 hours)
+    const todayGames = allCompletedGames.filter(
+      (game) => game.completedAt && game.completedAt >= oneDayAgo
+    );
+
+    // Filter for last 7 days
+    const weekGames = allCompletedGames.filter(
+      (game) => game.completedAt && game.completedAt >= sevenDaysAgo
+    );
+
+    // Find best (lowest) scores
+    const todayBestScore =
+      todayGames.length > 0
+        ? Math.min(...todayGames.map((game) => game.totalScore))
+        : null;
+
+    const weekBestScore =
+      weekGames.length > 0
+        ? Math.min(...weekGames.map((game) => game.totalScore))
+        : null;
+
+    return {
+      todayBestScore,
+      weekBestScore,
+      todayGamesCount: todayGames.length,
+      weekGamesCount: weekGames.length,
+    };
   },
 });

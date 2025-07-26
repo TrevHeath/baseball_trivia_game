@@ -118,7 +118,6 @@ async function selectRandomPlayer(
   playersMap: Map<string, any>,
   categoryCounts: Record<string, number>
 ): Promise<PlayerStats | null> {
-  // Filter for players who have data in at least 3 of our 6 categories
   const qualifiedPlayers = Array.from(playersMap.values()).filter((player) => {
     const categoryCount = Object.keys(player.stats).length;
     return categoryCount >= 1;
