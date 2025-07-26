@@ -3,7 +3,7 @@ import { api } from "../convex/_generated/api";
 import { useState, useEffect } from "react";
 import { Toaster, toast } from "sonner";
 
-const CATEGORIES = [
+const BATTER_CATEGORIES = [
   {
     id: "batting-average",
     name: "Batting Average",
@@ -18,6 +18,27 @@ const CATEGORIES = [
     description: "Most stolen bases",
   },
   { id: "rbis", name: "RBIs", description: "Most RBIs" },
+];
+
+const PITCHER_CATEGORIES = [
+  { id: "era", name: "ERA", description: "Lowest ERA" },
+  { id: "whip", name: "WHIP", description: "Lowest WHIP" },
+  { id: "strikeouts", name: "Strikeouts", description: "Most strikeouts" },
+  {
+    id: "strikeouts-per-9",
+    name: "K/9",
+    description: "Most strikeouts per 9 innings",
+  },
+  {
+    id: "innings-pitched",
+    name: "Innings Pitched",
+    description: "Most innings pitched",
+  },
+  {
+    id: "avg",
+    name: "Opp AVG",
+    description: "Lowest opponents batting average",
+  },
 ];
 
 export default function App() {
@@ -42,13 +63,21 @@ export default function App() {
     return localStorage.getItem("last-shown-game-id");
   });
   const [showRulesModal, setShowRulesModal] = useState(false);
+  const [gameMode, setGameMode] = useState<"batters" | "pitchers">("batters");
+
+  // Get current categories based on game mode
+  const CATEGORIES = getCategoriesByGameMode(gameMode);
 
   const currentGame = useQuery(api.game.getCurrentGame, { sessionId });
 
   const gameHistory = useQuery(api.game.getGameHistory, { sessionId });
   const allGameHistory = useQuery(api.game.getAllGameHistory, { sessionId });
   const usedCategories = useQuery(api.game.getUsedCategories, { sessionId });
-  const highScores = useQuery(api.game.getHighScores, {});
+  // Get high scores for the specific game mode of the completed game
+  const completedGameMode = gameHistory?.game?.gameMode || "batters";
+  const highScores = useQuery(api.game.getHighScores, {
+    gameMode: completedGameMode,
+  });
   const startNewGame = useAction(api.game.startNewGame);
   const selectCategory = useAction(api.game.selectCategory);
 
@@ -83,7 +112,7 @@ export default function App() {
     setShowResult(false);
     setLastResult(null);
     setShowGameEndModal(false);
-    void startNewGame({ sessionId });
+    void startNewGame({ sessionId, gameMode });
   };
 
   const handleCategorySelect = async (categoryId: string) => {
@@ -96,8 +125,13 @@ export default function App() {
 
       // Show toast feedback based on performance
       if (currentGame.player) {
-        const bestCategory = findBestCategory(currentGame.player);
+        const currentGameMode = currentGame.game?.gameMode || "batters";
+        const bestCategory = findBestCategory(
+          currentGame.player,
+          currentGameMode
+        );
         const actualRank = result.actualRank;
+        console.log(result, currentGame);
         const selectedCategoryName =
           CATEGORIES.find((c) => c.id === categoryId)?.name || categoryId;
         console.log(result);
@@ -155,21 +189,45 @@ export default function App() {
     return "Prospect";
   };
 
-  const findBestCategory = (player: any) => {
-    const categoryRanks = {
-      "batting-average": player.battingAverageRank,
-      "home-runs": player.homeRunsRank,
-      ops: player.opsRank,
-      obp: player.obpRank,
-      "stolen-bases": player.stolenBasesRank,
-      rbis: player.rbisRank,
-    };
+  const findBestCategory = (player: any, playerGameMode?: string) => {
+    // Determine if this is a pitcher or batter based on the player's stats or game mode
+    const isPitcher =
+      playerGameMode === "pitchers" ||
+      (player.eraRank !== undefined && player.whipRank !== undefined);
 
-    let bestCategory = "batting-average";
-    let bestRank = categoryRanks["batting-average"];
+    let categoryRanks: Record<string, number>;
+    let defaultCategory: string;
+    let categories: typeof BATTER_CATEGORIES;
+
+    if (isPitcher) {
+      categoryRanks = {
+        era: player.eraRank,
+        whip: player.whipRank,
+        strikeouts: player.strikeoutsRank,
+        "strikeouts-per-9": player.strikeoutsPer9Rank,
+        "innings-pitched": player.inningsPitchedRank,
+        avg: player.avgRank,
+      };
+      defaultCategory = "era";
+      categories = PITCHER_CATEGORIES;
+    } else {
+      categoryRanks = {
+        "batting-average": player.battingAverageRank,
+        "home-runs": player.homeRunsRank,
+        ops: player.opsRank,
+        obp: player.obpRank,
+        "stolen-bases": player.stolenBasesRank,
+        rbis: player.rbisRank,
+      };
+      defaultCategory = "batting-average";
+      categories = BATTER_CATEGORIES;
+    }
+
+    let bestCategory = defaultCategory;
+    let bestRank = categoryRanks[defaultCategory];
 
     for (const [category, rank] of Object.entries(categoryRanks)) {
-      if (rank < bestRank) {
+      if (rank && rank < bestRank) {
         bestRank = rank;
         bestCategory = category;
       }
@@ -178,7 +236,7 @@ export default function App() {
     return {
       category: bestCategory,
       rank: bestRank,
-      name: CATEGORIES.find((c) => c.id === bestCategory)?.name || bestCategory,
+      name: categories.find((c) => c.id === bestCategory)?.name || bestCategory,
     };
   };
 
@@ -235,15 +293,52 @@ export default function App() {
         {/* Game not started */}
         {!currentGame?.game && (
           <div className="text-center animate-slide-up">
+            {/* Game Mode Selector */}
+            <div className="bg-white rounded-xl shadow-xl p-6 mb-6 border-2 border-blue-200">
+              <h2 className="text-2xl font-bold text-blue-600 mb-4">
+                Choose Your Game Mode
+              </h2>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => setGameMode("batters")}
+                  className={`py-3 px-6 rounded-lg font-bold transition-all duration-300 ${
+                    gameMode === "batters"
+                      ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  🏏 Batters
+                </button>
+                <button
+                  onClick={() => setGameMode("pitchers")}
+                  className={`py-3 px-6 rounded-lg font-bold transition-all duration-300 ${
+                    gameMode === "pitchers"
+                      ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  ⚾ Pitchers
+                </button>
+              </div>
+            </div>
+
             <div className="bg-white rounded-xl shadow-xl p-8 mb-6 border-2 border-emerald-200 transform hover:scale-105 transition-all duration-300">
               <h2 className="text-3xl font-bold text-emerald-600 mb-4">
-                How to Play
+                How to Play {gameMode === "pitchers" ? "Pitchers" : "Batters"}
               </h2>
               <div className="text-left max-w-2xl mx-auto space-y-3 text-gray-700">
-                <p>• You'll see 6 random MLB players, one at a time</p>
+                <p>• You'll see 6 random MLB {gameMode}, one at a time</p>
                 <p>
-                  • For each player, choose the category where you think they
-                  rank <strong>highest</strong> (closest to #1)
+                  • For each {gameMode === "pitchers" ? "pitcher" : "player"},
+                  choose the category where you think they rank{" "}
+                  <strong>
+                    {gameMode === "pitchers" ? "best" : "highest"}
+                  </strong>{" "}
+                  (
+                  {gameMode === "pitchers"
+                    ? "lowest for ERA/WHIP/AVG, highest for others"
+                    : "closest to #1"}
+                  )
                 </p>
                 <p>• Each category can only be selected once per game</p>
                 <p>
@@ -255,7 +350,8 @@ export default function App() {
                   points!
                 </p>
                 <p className="text-sm text-blue-600 font-medium">
-                  • Using MLB stats from the current season!
+                  • Using MLB {gameMode === "pitchers" ? "pitching" : "hitting"}{" "}
+                  stats from the current season!
                 </p>
                 <p className="text-sm text-blue-600 font-medium">
                   • Players not qualified for a category will be ranked last in
@@ -450,11 +546,42 @@ export default function App() {
               <p className="text-gray-600 mb-6">
                 Perfect score is 6 • Lower is better
               </p>
+
+              {/* Game Mode Selector for Next Game */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6 max-w-md mx-auto">
+                <h3 className="font-semibold text-gray-800 mb-3 text-center">
+                  Next Game Mode
+                </h3>
+                <div className="flex gap-3 justify-center">
+                  <button
+                    onClick={() => setGameMode("batters")}
+                    className={`py-2 px-4 rounded-lg font-bold transition-all duration-300 text-sm ${
+                      gameMode === "batters"
+                        ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
+                        : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+                    }`}
+                  >
+                    🏏 Batters
+                  </button>
+                  <button
+                    onClick={() => setGameMode("pitchers")}
+                    className={`py-2 px-4 rounded-lg font-bold transition-all duration-300 text-sm ${
+                      gameMode === "pitchers"
+                        ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
+                        : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+                    }`}
+                  >
+                    ⚾ Pitchers
+                  </button>
+                </div>
+              </div>
+
               <button
                 onClick={handleStartGame}
                 className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
               >
-                🎮 Play Again
+                🎮 Play Again (
+                {gameMode === "pitchers" ? "Pitchers" : "Batters"})
               </button>
             </div>
           </div>
@@ -504,7 +631,11 @@ export default function App() {
                 {highScores && (
                   <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 mb-6">
                     <h3 className="font-semibold text-purple-800 mb-3">
-                      🌟 Global High Scores
+                      🌟 Global High Scores (
+                      {completedGameMode === "pitchers"
+                        ? "Pitchers"
+                        : "Batters"}
+                      )
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-white rounded-lg p-3 border border-purple-100">
@@ -596,13 +727,43 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+                {/* Game Mode Selector for Next Game */}
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                  <h3 className="font-semibold text-gray-800 mb-3 text-center">
+                    Next Game Mode
+                  </h3>
+                  <div className="flex gap-3 justify-center">
+                    <button
+                      onClick={() => setGameMode("batters")}
+                      className={`py-2 px-4 rounded-lg font-bold transition-all duration-300 text-sm ${
+                        gameMode === "batters"
+                          ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
+                          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+                      }`}
+                    >
+                      🏏 Batters
+                    </button>
+                    <button
+                      onClick={() => setGameMode("pitchers")}
+                      className={`py-2 px-4 rounded-lg font-bold transition-all duration-300 text-sm ${
+                        gameMode === "pitchers"
+                          ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
+                          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+                      }`}
+                    >
+                      ⚾ Pitchers
+                    </button>
+                  </div>
+                </div>
+
                 {/* Action Buttons */}
                 <div className="flex gap-3  bottom-4 left-0 right-0">
                   <button
                     onClick={handleStartGame}
                     className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold py-4 px-8 my-5 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
                   >
-                    🎮 Play Again
+                    🎮 Play Again (
+                    {gameMode === "pitchers" ? "Pitchers" : "Batters"})
                   </button>
                 </div>
                 {/* Round Summary */}
@@ -625,9 +786,10 @@ export default function App() {
                             {round.selectedCategory && (
                               <div className="text-sm text-gray-600">
                                 {
-                                  CATEGORIES.find(
-                                    (c) => c.id === round.selectedCategory
-                                  )?.name
+                                  getCategoriesByGameMode(
+                                    gameHistory.game.gameMode
+                                  ).find((c) => c.id === round.selectedCategory)
+                                    ?.name
                                 }
                               </div>
                             )}
@@ -716,27 +878,16 @@ export default function App() {
 
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
                     <h3 className="font-bold text-purple-600 mb-2">
-                      📊 Categories
+                      📊 Categories (
+                      {gameMode === "pitchers" ? "Pitchers" : "Batters"})
                     </h3>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        • <strong>Batting Average</strong> - Highest BA
-                      </div>
-                      <div>
-                        • <strong>Home Runs</strong> - Most HRs
-                      </div>
-                      <div>
-                        • <strong>OPS</strong> - Highest OPS
-                      </div>
-                      <div>
-                        • <strong>OBP</strong> - Highest OBP
-                      </div>
-                      <div>
-                        • <strong>Stolen Bases</strong> - Most SBs
-                      </div>
-                      <div>
-                        • <strong>RBIs</strong> - Most RBIs
-                      </div>
+                      {CATEGORIES.map((category) => (
+                        <div key={category.id}>
+                          • <strong>{category.name}</strong> -{" "}
+                          {category.description}
+                        </div>
+                      ))}
                     </div>
                   </div>
 
@@ -818,4 +969,8 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+function getCategoriesByGameMode(gameMode: string | undefined) {
+  return gameMode === "pitchers" ? PITCHER_CATEGORIES : BATTER_CATEGORIES;
 }

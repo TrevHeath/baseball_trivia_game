@@ -3,18 +3,20 @@ import { query, mutation, action } from "./_generated/server";
 import { api } from "./_generated/api";
 
 export const startNewGame = action({
-  args: { sessionId: v.string() },
+  args: { sessionId: v.string(), gameMode: v.optional(v.string()) },
   handler: async (ctx, args): Promise<any> => {
+    const mode = args.gameMode || "batters";
+    
     // Create the game first, then fetch the first player
     const gameId: any = await ctx.runMutation(api.game.createNewGame, {
       sessionId: args.sessionId,
+      gameMode: mode,
     });
 
-    // Fetch the first player for round 1
-    const playerResult: any = await ctx.runAction(
-      api.players.getRandomPlayer,
-      {}
-    );
+    // Fetch the first player for round 1 based on game mode
+    const playerAction = mode === "pitchers" ? api.players.getRandomPitcher : api.players.getRandomPlayer;
+    const playerResult: any = await ctx.runAction(playerAction, {});
+    
     if (!playerResult.success || !playerResult.player) {
       throw new Error("Failed to fetch first player");
     }
@@ -33,6 +35,7 @@ export const startNewGame = action({
 export const createNewGame = mutation({
   args: {
     sessionId: v.string(),
+    gameMode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // End any existing game for this session, but only if all 6 rounds are filled
@@ -60,6 +63,7 @@ export const createNewGame = mutation({
       currentRound: 1,
       totalScore: 0,
       isComplete: false,
+      gameMode: args.gameMode || "batters",
     });
 
     return gameId;
@@ -136,10 +140,10 @@ export const selectCategory = action({
     // If game is not complete, fetch next player
     if (!result.isGameComplete) {
       console.log(`Fetching new player for round ${result.nextRound}`);
-      const playerResult: any = await ctx.runAction(
-        api.players.getRandomPlayer,
-        {}
-      );
+      
+      // Determine which player action to use based on game mode
+      const playerAction = result.gameMode === "pitchers" ? api.players.getRandomPitcher : api.players.getRandomPlayer;
+      const playerResult: any = await ctx.runAction(playerAction, {});
 
       if (playerResult.success && playerResult.player) {
         console.log(
@@ -186,15 +190,29 @@ export const updateRoundWithSelection = mutation({
     const player = currentRound.playerStats;
     if (!player) throw new Error("Player stats not found");
 
-    // Get the rank for the selected category
-    const categoryRankMap: Record<string, number> = {
-      "batting-average": player.battingAverageRank,
-      "home-runs": player.homeRunsRank,
-      ops: player.opsRank,
-      obp: player.obpRank,
-      "stolen-bases": player.stolenBasesRank,
-      rbis: player.rbisRank,
-    };
+    // Get the rank for the selected category based on game mode
+    const gameMode = game.gameMode || "batters";
+    let categoryRankMap: Record<string, number>;
+    
+    if (gameMode === "pitchers") {
+      categoryRankMap = {
+        era: player.eraRank,
+        whip: player.whipRank,
+        strikeouts: player.strikeoutsRank,
+        "strikeouts-per-9": player.strikeoutsPer9Rank,
+        "innings-pitched": player.inningsPitchedRank,
+        avg: player.avgRank, // opponents batting average
+      };
+    } else {
+      categoryRankMap = {
+        "batting-average": player.battingAverageRank,
+        "home-runs": player.homeRunsRank,
+        ops: player.opsRank,
+        obp: player.obpRank,
+        "stolen-bases": player.stolenBasesRank,
+        rbis: player.rbisRank,
+      };
+    }
 
     const actualRank = categoryRankMap[args.category];
     if (!actualRank) throw new Error("Invalid category");
@@ -222,6 +240,7 @@ export const updateRoundWithSelection = mutation({
         isGameComplete: true,
         gameId: game._id,
         nextRound: 0,
+        gameMode,
       };
     } else {
       // Prepare for next round
@@ -237,6 +256,7 @@ export const updateRoundWithSelection = mutation({
         isGameComplete: false,
         gameId: game._id,
         nextRound,
+        gameMode,
       };
     }
   },
@@ -303,8 +323,8 @@ export const getAllGameHistory = query({
 });
 
 export const getHighScores = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { gameMode: v.optional(v.string()) },
+  handler: async (ctx, args) => {
     // Get current time in PST/PDT
     const now = new Date();
 
@@ -346,12 +366,28 @@ export const getHighScores = query({
     const startOfSevenDaysAgoUTC =
       startOfSevenDaysAgoPST.getTime() - pstOffset * 60 * 60 * 1000;
 
-    // Get all completed games
-    const allCompletedGames = await ctx.db
+    // Get all completed games, optionally filtered by game mode
+    let gamesQuery = ctx.db
       .query("games")
       .filter((q) => q.eq(q.field("isComplete"), true))
-      .filter((q) => q.neq(q.field("completedAt"), undefined))
-      .collect();
+      .filter((q) => q.neq(q.field("completedAt"), undefined));
+      
+    // Filter by game mode if specified
+    if (args.gameMode === "pitchers") {
+      // For pitchers, only include games explicitly marked as pitchers
+      gamesQuery = gamesQuery.filter((q) => q.eq(q.field("gameMode"), "pitchers"));
+    } else if (args.gameMode === "batters") {
+      // For batters, include both "batters" and undefined (backwards compatibility)
+      gamesQuery = gamesQuery.filter((q) => 
+        q.or(
+          q.eq(q.field("gameMode"), "batters"),
+          q.eq(q.field("gameMode"), undefined)
+        )
+      );
+    }
+    // If args.gameMode is undefined, include all games (no additional filter)
+    
+    const allCompletedGames = await gamesQuery.collect();
 
     // Filter for today's games (since midnight PST)
     const todayGames = allCompletedGames.filter(

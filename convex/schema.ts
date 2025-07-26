@@ -9,6 +9,7 @@ const applicationTables = {
     totalScore: v.number(),
     isComplete: v.boolean(),
     completedAt: v.optional(v.number()),
+    gameMode: v.optional(v.string()), // "batters" or "pitchers"
     // Removed players array - no longer needed
   }).index("by_session", ["sessionId"]),
   
