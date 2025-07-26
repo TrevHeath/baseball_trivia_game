@@ -218,10 +218,10 @@ export default function App() {
         {/* Header */}
         <div className="relative text-center mb-8 animate-fade-in">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 animate-bounce-subtle">
-            Basebally Stats Challenge
+            Basebally Challenge
           </h1>
           <p className="text-gray-700 text-lg font-medium">
-            Guess which category each player ranks highest in!
+            How well do you know the game?
           </p>
 
           {/* Rules Button */}
@@ -512,40 +512,54 @@ export default function App() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-white rounded-lg p-3 border border-purple-100">
                         <div className="text-center">
-                          <div className="text-sm text-purple-600 font-medium">Today's Best</div>
+                          <div className="text-sm text-purple-600 font-medium">
+                            Today's Best
+                          </div>
                           <div className="text-2xl font-bold text-purple-800">
-                            {highScores.todayBestScore !== null ? highScores.todayBestScore : "—"}
+                            {highScores.todayBestScore !== null
+                              ? highScores.todayBestScore
+                              : "—"}
                           </div>
                           <div className="text-xs text-purple-500">
-                            {highScores.todayGamesCount} game{highScores.todayGamesCount !== 1 ? 's' : ''} played
+                            {highScores.todayGamesCount} game
+                            {highScores.todayGamesCount !== 1 ? "s" : ""} played
                           </div>
                         </div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-purple-100">
                         <div className="text-center">
-                          <div className="text-sm text-purple-600 font-medium">Week's Best</div>
+                          <div className="text-sm text-purple-600 font-medium">
+                            Week's Best
+                          </div>
                           <div className="text-2xl font-bold text-purple-800">
-                            {highScores.weekBestScore !== null ? highScores.weekBestScore : "—"}
+                            {highScores.weekBestScore !== null
+                              ? highScores.weekBestScore
+                              : "—"}
                           </div>
                           <div className="text-xs text-purple-500">
-                            {highScores.weekGamesCount} game{highScores.weekGamesCount !== 1 ? 's' : ''} played
+                            {highScores.weekGamesCount} game
+                            {highScores.weekGamesCount !== 1 ? "s" : ""} played
                           </div>
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Achievement badges */}
                     <div className="mt-3 flex flex-wrap gap-2 justify-center">
-                      {gameHistory.game.totalScore === highScores.todayBestScore && highScores.todayBestScore !== null && (
-                        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
-                          🥇 TODAY'S CHAMPION!
-                        </div>
-                      )}
-                      {gameHistory.game.totalScore === highScores.weekBestScore && highScores.weekBestScore !== null && (
-                        <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
-                          👑 WEEKLY CHAMPION!
-                        </div>
-                      )}
+                      {gameHistory.game.totalScore ===
+                        highScores.todayBestScore &&
+                        highScores.todayBestScore !== null && (
+                          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+                            🥇 TODAY'S CHAMPION!
+                          </div>
+                        )}
+                      {gameHistory.game.totalScore ===
+                        highScores.weekBestScore &&
+                        highScores.weekBestScore !== null && (
+                          <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+                            👑 WEEKLY CHAMPION!
+                          </div>
+                        )}
                     </div>
                   </div>
                 )}
