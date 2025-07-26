@@ -71,14 +71,14 @@ export default function App() {
   const currentGame = useQuery(api.game.getCurrentGame, { sessionId });
 
   useEffect(() => {
-    if (currentGame?.game?.gameMode)
+    if (currentGame?.game?.gameMode && !currentGame.game.isComplete)
       setGameMode(currentGame?.game?.gameMode as "batters" | "pitchers"); // Default to "batters" if not set
   }, [currentGame]);
 
   const gameHistory = useQuery(api.game.getGameHistory, { sessionId });
   const allGameHistory = useQuery(api.game.getAllGameHistory, {
     sessionId,
-    gameMode,
+    gameMode: gameHistory?.game?.gameMode,
   });
   const usedCategories = useQuery(api.game.getUsedCategories, { sessionId });
   // Get high scores for the specific game mode of the completed game
