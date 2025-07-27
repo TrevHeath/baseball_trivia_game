@@ -68,7 +68,7 @@ async function fetchStatsFromAPI(): Promise<{
   categoryCounts: Record<string, number>;
 } | null> {
   try {
-    const currentYear = new Date().getFullYear() - 5;
+    const currentYear = new Date().getFullYear();
     const baseUrl = "https://statsapi.mlb.com/api/v1";
 
     // Fetch stat leaders for all our categories
