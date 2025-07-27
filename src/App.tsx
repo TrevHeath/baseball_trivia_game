@@ -10,24 +10,28 @@ const BATTER_CATEGORIES = [
     description: "Highest batting average",
   },
   { id: "home-runs", name: "Home Runs", description: "Most home runs" },
-  { id: "ops", name: "OPS", description: "Highest OPS" },
-  { id: "obp", name: "OBP", description: "Highest obp" },
+  { id: "ops", name: "OPS", description: "Highest On-base plus slugging" },
+  { id: "obp", name: "OBP", description: "Highest On-base percentage" },
   {
     id: "stolen-bases",
     name: "Stolen Bases",
     description: "Most stolen bases",
   },
-  { id: "rbis", name: "RBIs", description: "Most RBIs" },
+  { id: "rbis", name: "RBIs", description: "Most Runs Batted In" },
 ];
 
 const PITCHER_CATEGORIES = [
-  { id: "era", name: "ERA", description: "Lowest ERA" },
-  { id: "whip", name: "WHIP", description: "Lowest WHIP" },
+  { id: "era", name: "ERA", description: "Lowest Earned Run Average" },
+  {
+    id: "whip",
+    name: "WHIP",
+    description: "Walks and Hits per Inning Pitched",
+  },
   { id: "strikeouts", name: "Strikeouts", description: "Most strikeouts" },
   {
     id: "strikeouts-per-9",
     name: "K/9",
-    description: "Most strikeouts per 9 innings",
+    description: "Strikeouts per 9 innings pitched",
   },
   {
     id: "innings-pitched",
@@ -328,51 +332,117 @@ export default function App() {
                   ⚾ Pitchers
                 </button>
               </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-xl p-8 mb-6 border-2 border-emerald-200 transform hover:scale-105 transition-all duration-300">
-              <h2 className="text-3xl font-bold text-emerald-600 mb-4">
-                How to Play {gameMode === "pitchers" ? "Pitchers" : "Batters"}
-              </h2>
-              <div className="text-left max-w-2xl mx-auto space-y-3 text-gray-700">
-                <p>• You'll see 6 random MLB {gameMode}, one at a time</p>
-                <p>
-                  • For each {gameMode === "pitchers" ? "pitcher" : "player"},
-                  choose the category where you think they rank{" "}
-                  <strong>
-                    {gameMode === "pitchers" ? "best" : "highest"}
-                  </strong>{" "}
-                  (
-                  {gameMode === "pitchers"
-                    ? "lowest for ERA/WHIP/AVG, highest for others"
-                    : "closest to #1"}
-                  )
-                </p>
-                <p>• Each category can only be selected once per game</p>
-                <p>
-                  • Your score is the sum of their actual ranks in your chosen
-                  categories
-                </p>
-                <p>
-                  • Lower scores are better - a perfect game scores just 6
-                  points!
-                </p>
-                <p className="text-sm text-blue-600 font-medium">
-                  • Using MLB {gameMode === "pitchers" ? "pitching" : "hitting"}{" "}
-                  stats from the current season!
-                </p>
-                <p className="text-sm text-blue-600 font-medium">
-                  • Players not qualified for a category will be ranked last in
-                  that category.
-                </p>
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={handleStartGame}
+                  className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 animate-pulse-slow"
+                >
+                  🚀 Start New Game
+                </button>
               </div>
             </div>
-            <button
-              onClick={handleStartGame}
-              className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 animate-pulse-slow"
-            >
-              🚀 Start New Game
-            </button>
+
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full animate-slide-up">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-2xl">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-3xl font-bold">📖 How to Play</h2>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6">
+                <div className="text-left space-y-4 text-gray-700">
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                    <h3 className="font-bold text-emerald-600 mb-2">
+                      🎯 Objective
+                    </h3>
+                    <p>
+                      You'll see 6 random MLB players, one at a time. For each
+                      player, choose the category where you think they rank{" "}
+                      <strong>highest</strong> (closest to #1).
+                    </p>
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h3 className="font-bold text-blue-600 mb-2">
+                      🎮 Game Rules
+                    </h3>
+                    <ul className="space-y-2">
+                      <li>
+                        • Each category can only be selected once per game
+                      </li>
+                      <li>
+                        • Your score is the sum of their actual ranks in your
+                        chosen categories
+                      </li>
+                      <li>
+                        • Lower scores are better - a perfect game scores just 6
+                        points!
+                      </li>
+                      <li>• Using MLB stats from the current season!</li>
+                      <li>
+                        • Players not qualified for a category will be ranked
+                        last in that category.
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h3 className="font-bold text-purple-600 mb-4">
+                      📊 Categories (
+                      {gameMode === "pitchers" ? "Pitchers" : "Batters"})
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      {CATEGORIES.map((category) => (
+                        <div className="flex flex-col" key={category.id}>
+                          <strong>{category.name}</strong>
+                          {category.description}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h3 className="font-bold text-yellow-600 mb-2">
+                      🏆 Scoring
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        •{" "}
+                        <span className="text-green-600 font-bold">
+                          1-100 points:
+                        </span>{" "}
+                        Hall of fame!
+                      </div>
+                      <div>
+                        •{" "}
+                        <span className="text-yellow-600 font-bold">
+                          100-200 points:
+                        </span>{" "}
+                        All star!
+                      </div>
+                      <div>
+                        •{" "}
+                        <span className="text-orange-600 font-bold">
+                          200-300 points:
+                        </span>{" "}
+                        Ball Player
+                      </div>
+                      <div>
+                        •{" "}
+                        <span className="text-red-600 font-bold">
+                          300+ points:
+                        </span>{" "}
+                        Prospect
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Close Button */}
+              </div>
+            </div>
           </div>
         )}
         {currentGame?.game &&
@@ -885,14 +955,14 @@ export default function App() {
                   </div>
 
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                    <h3 className="font-bold text-purple-600 mb-2">
+                    <h3 className="font-bold text-purple-600 mb-4">
                       📊 Categories (
                       {gameMode === "pitchers" ? "Pitchers" : "Batters"})
                     </h3>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       {CATEGORIES.map((category) => (
-                        <div key={category.id}>
-                          • <strong>{category.name}</strong> -{" "}
+                        <div className="flex flex-col" key={category.id}>
+                          <strong>{category.name}</strong>
                           {category.description}
                         </div>
                       ))}
