@@ -342,7 +342,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full animate-slide-up">
+            <div className="bg-white rounded-2xl shadow-2xl  w-full animate-slide-up">
               {/* Modal Header */}
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-2xl">
                 <div className="flex justify-between items-center">
