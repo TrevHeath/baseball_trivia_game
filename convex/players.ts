@@ -68,7 +68,7 @@ async function fetchStatsFromAPI(): Promise<{
   categoryCounts: Record<string, number>;
 } | null> {
   try {
-    const currentYear = new Date().getFullYear();
+    const currentYear = new Date().getFullYear() - 5;
     const baseUrl = "https://statsapi.mlb.com/api/v1";
 
     // Fetch stat leaders for all our categories
@@ -82,7 +82,7 @@ async function fetchStatsFromAPI(): Promise<{
     ];
 
     const promises = statCategories.map(async (category) => {
-      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=hitting&limit=150`;
+      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=hitting&limit=300`;
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -106,7 +106,10 @@ async function fetchStatsFromAPI(): Promise<{
       const category = statCategories[index];
 
       const leaders = result.leagueLeaders?.[0]?.leaders || [];
-      console.log(category, leaders.length);
+      console.log(
+        category,
+        leaders.map((leader: StatLeader) => leader.person.fullName)
+      );
       // Track the total number of qualified players for this category
       categoryCounts[category] = leaders.length;
 
@@ -283,7 +286,7 @@ async function fetchPitchingStatsFromAPI(): Promise<{
     ];
 
     const promises = statCategories.map(async (category) => {
-      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=pitching&limit=150`;
+      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=pitching&limit=300`;
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -305,7 +308,10 @@ async function fetchPitchingStatsFromAPI(): Promise<{
     results.forEach((result, index) => {
       const category = statCategories[index];
       const leaders = result.leagueLeaders?.[0]?.leaders || [];
-      console.log(category, leaders.length);
+      console.log(
+        category,
+        leaders.map((leader: StatLeader) => leader.person.fullName)
+      );
       // Track the total number of qualified pitchers for this category
       categoryCounts[category] = leaders.length;
 
