@@ -82,7 +82,8 @@ async function fetchStatsFromAPI(): Promise<{
     ];
 
     const promises = statCategories.map(async (category) => {
-      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=hitting&limit=300`;
+      // Use improved query with playerPool and sportId for better results
+      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=hitting&limit=100&sportId=1&playerPool=QUALIFIED&playerActive=Y`;
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -92,8 +93,50 @@ async function fetchStatsFromAPI(): Promise<{
       }
 
       const data = await response.json();
+      let allLeaders = data.leagueLeaders?.[0]?.leaders || [];
 
-      return data;
+      // Always try pagination if we got a substantial number of results (likely means more exist)
+      if (allLeaders.length >= 50) {
+        console.log(
+          `[BATTERS] ${category}: Got ${allLeaders.length} results, trying pagination...`
+        );
+        let offset = 100;
+        let hasMore = true;
+
+        while (hasMore && offset < 500) {
+          // Safety limit
+          const paginatedUrl = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=hitting&limit=100&offset=${offset}&sportId=1&playerPool=QUALIFIED&playerActive=Y`;
+          const paginatedResponse = await fetch(paginatedUrl);
+
+          if (paginatedResponse.ok) {
+            const paginatedData = await paginatedResponse.json();
+            const moreLeaders = paginatedData.leagueLeaders?.[0]?.leaders || [];
+
+            if (moreLeaders.length > 0) {
+              allLeaders = [...allLeaders, ...moreLeaders];
+              offset += 100;
+              console.log(
+                `[BATTERS] ${category}: Added ${moreLeaders.length} more, total: ${allLeaders.length}`
+              );
+            } else {
+              hasMore = false;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+      }
+
+      // Reconstruct the data structure with all leaders
+      return {
+        ...data,
+        leagueLeaders: [
+          {
+            ...data.leagueLeaders[0],
+            leaders: allLeaders,
+          },
+        ],
+      };
     });
 
     const results = await Promise.all(promises);
@@ -106,10 +149,7 @@ async function fetchStatsFromAPI(): Promise<{
       const category = statCategories[index];
 
       const leaders = result.leagueLeaders?.[0]?.leaders || [];
-      console.log(
-        category,
-        leaders.map((leader: StatLeader) => leader.person.fullName)
-      );
+      console.log(`[BATTERS] ${category}: ${leaders.length} leaders found`);
       // Track the total number of qualified players for this category
       categoryCounts[category] = leaders.length;
 
@@ -132,7 +172,8 @@ async function fetchStatsFromAPI(): Promise<{
         player.ranks[category] = rank;
       });
     });
-
+    console.log("[BATTERS] Final category counts:", categoryCounts);
+    console.log(`[BATTERS] Total unique players found: ${playersMap.size}`);
     return { players: playersMap, stats: results, categoryCounts };
   } catch (error) {
     console.error("Error fetching from MLB Stats API:", error);
@@ -149,17 +190,20 @@ async function selectRandomPlayer(
     return categoryCount >= 1;
   });
 
-  console.log(`Found ${qualifiedPlayers.length} qualified players`);
+  console.log(
+    `Found ${qualifiedPlayers.length} qualified batters (with 3+ stats)`
+  );
 
   if (qualifiedPlayers.length === 0) {
     return null;
   }
 
-  // Filter for batters only by checking position
+  // Since we're using playerPool=QUALIFIED and statGroup=hitting, most should be batters
+  // But let's still verify to be safe
   const pitcherPositions = ["Pitcher", "Starting Pitcher", "Relief Pitcher"];
 
   let attempts = 0;
-  const maxAttempts = 20;
+  const maxAttempts = 10; // Reduced since API filtering should be better
 
   while (attempts < maxAttempts) {
     // Select a random qualified player
@@ -167,7 +211,7 @@ async function selectRandomPlayer(
     const selectedPlayer = qualifiedPlayers[randomIndex];
 
     console.log(
-      `Selected player: ${selectedPlayer.name} (ID: ${selectedPlayer.id})`
+      `Selected batter candidate: ${selectedPlayer.name} (ID: ${selectedPlayer.id})`
     );
 
     // Fetch detailed player information
@@ -175,11 +219,11 @@ async function selectRandomPlayer(
 
     // Check if player is a batter (not a pitcher)
     if (
-      playerDetails?.position &&
+      !playerDetails?.position ||
       !pitcherPositions.includes(playerDetails.position)
     ) {
       console.log(
-        `Confirmed batter: ${selectedPlayer.name} (${playerDetails.position})`
+        `Confirmed batter: ${selectedPlayer.name} (${playerDetails?.position || "Unknown"})`
       );
       // Convert to our expected format with fallback values for missing stats
       return {
@@ -286,7 +330,8 @@ async function fetchPitchingStatsFromAPI(): Promise<{
     ];
 
     const promises = statCategories.map(async (category) => {
-      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=pitching&limit=300`;
+      // Use improved query with playerPool and sportId for better results
+      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=pitching&limit=100&sportId=1&playerPool=QUALIFIED&playerActive=Y`;
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -296,7 +341,50 @@ async function fetchPitchingStatsFromAPI(): Promise<{
       }
 
       const data = await response.json();
-      return data;
+      let allLeaders = data.leagueLeaders?.[0]?.leaders || [];
+
+      // Always try pagination if we got a substantial number of results (likely means more exist)
+      if (allLeaders.length >= 50) {
+        console.log(
+          `[PITCHERS] ${category}: Got ${allLeaders.length} results, trying pagination...`
+        );
+        let offset = 100;
+        let hasMore = true;
+
+        while (hasMore && offset < 500) {
+          // Safety limit
+          const paginatedUrl = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=pitching&limit=100&offset=${offset}&sportId=1&playerPool=QUALIFIED&playerActive=Y`;
+          const paginatedResponse = await fetch(paginatedUrl);
+
+          if (paginatedResponse.ok) {
+            const paginatedData = await paginatedResponse.json();
+            const moreLeaders = paginatedData.leagueLeaders?.[0]?.leaders || [];
+
+            if (moreLeaders.length > 0) {
+              allLeaders = [...allLeaders, ...moreLeaders];
+              offset += 100;
+              console.log(
+                `[PITCHERS] ${category}: Added ${moreLeaders.length} more, total: ${allLeaders.length}`
+              );
+            } else {
+              hasMore = false;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+      }
+
+      // Reconstruct the data structure with all leaders
+      return {
+        ...data,
+        leagueLeaders: [
+          {
+            ...data.leagueLeaders[0],
+            leaders: allLeaders,
+          },
+        ],
+      };
     });
 
     const results = await Promise.all(promises);
@@ -308,10 +396,7 @@ async function fetchPitchingStatsFromAPI(): Promise<{
     results.forEach((result, index) => {
       const category = statCategories[index];
       const leaders = result.leagueLeaders?.[0]?.leaders || [];
-      console.log(
-        category,
-        leaders.map((leader: StatLeader) => leader.person.fullName)
-      );
+      console.log(`[PITCHERS] ${category}: ${leaders.length} leaders found`);
       // Track the total number of qualified pitchers for this category
       categoryCounts[category] = leaders.length;
 
@@ -335,6 +420,8 @@ async function fetchPitchingStatsFromAPI(): Promise<{
       });
     });
 
+    console.log("[PITCHERS] Final category counts:", categoryCounts);
+    console.log(`[PITCHERS] Total unique pitchers found: ${playersMap.size}`);
     return { players: playersMap, stats: results, categoryCounts };
   } catch (error) {
     console.error("Error fetching pitcher stats from MLB Stats API:", error);
@@ -348,20 +435,23 @@ async function selectRandomPitcher(
 ): Promise<PitcherStats | null> {
   const qualifiedPlayers = Array.from(playersMap.values()).filter((player) => {
     const categoryCount = Object.keys(player.stats).length;
-    return categoryCount >= 1;
+    return categoryCount >= 3; // Require at least 3 stats for better quality
   });
 
-  console.log(`Found ${qualifiedPlayers.length} qualified pitchers`);
+  console.log(
+    `Found ${qualifiedPlayers.length} qualified pitchers (with 3+ stats)`
+  );
 
   if (qualifiedPlayers.length === 0) {
     return null;
   }
 
-  // Filter for pitchers only by checking position
+  // Since we're using playerPool=QUALIFIED and statGroup=pitching, most should be pitchers
+  // But let's still verify to be safe
   const pitcherPositions = ["Pitcher", "Starting Pitcher", "Relief Pitcher"];
 
   let attempts = 0;
-  const maxAttempts = 20;
+  const maxAttempts = 10; // Reduced since API filtering should be better
 
   while (attempts < maxAttempts) {
     // Select a random qualified pitcher
@@ -369,19 +459,19 @@ async function selectRandomPitcher(
     const selectedPlayer = qualifiedPlayers[randomIndex];
 
     console.log(
-      `Selected pitcher: ${selectedPlayer.name} (ID: ${selectedPlayer.id})`
+      `Selected pitcher candidate: ${selectedPlayer.name} (ID: ${selectedPlayer.id})`
     );
 
     // Fetch detailed player information
     const playerDetails = await fetchPlayerDetails(selectedPlayer.id);
 
-    // Check if player is a pitcher
+    // Check if player is a pitcher (or unknown position for pitching stats)
     if (
-      playerDetails?.position &&
+      !playerDetails?.position ||
       pitcherPositions.includes(playerDetails.position)
     ) {
       console.log(
-        `Confirmed pitcher: ${selectedPlayer.name} (${playerDetails.position})`
+        `Confirmed pitcher: ${selectedPlayer.name} (${playerDetails?.position || "Pitcher"})`
       );
 
       // Convert to our expected format with fallback values for missing stats
