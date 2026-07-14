@@ -98,6 +98,17 @@ export default function App() {
     allGameHistory && allGameHistory.length > 0
       ? Math.min(...allGameHistory.map((game: any) => game.totalScore))
       : null;
+  const previousScores = allGameHistory?.filter(
+    (game: any) => game._id !== gameHistory?.game?._id
+  );
+  const previousBestScore =
+    previousScores && previousScores.length > 0
+      ? Math.min(...previousScores.map((game: any) => game.totalScore))
+      : null;
+  const isNewPersonalBest =
+    gameHistory?.game?.totalScore !== undefined &&
+    (previousBestScore === null ||
+      gameHistory.game.totalScore < previousBestScore);
 
   // Check for game completion and show modal
   useEffect(() => {
@@ -256,11 +267,11 @@ export default function App() {
 
   if (currentGame === undefined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-100 via-blue-100 to-purple-100 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-200 border-t-emerald-600 mx-auto mb-4 shadow-lg"></div>
-          <p className="text-gray-700 text-lg font-medium animate-pulse">
-            Loading your baseball adventure...
+      <div className="retro-app min-h-screen flex items-center justify-center p-4">
+        <div className="boot-screen text-center">
+          <div className="pixel-ball mx-auto mb-5">⚾</div>
+          <p className="terminal-line text-lg font-medium">
+            LOADING MLB DATABASE<span className="blink-cursor">_</span>
           </p>
         </div>
         <Toaster
@@ -283,22 +294,28 @@ export default function App() {
   // usedCategories is now from the query above
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-100 via-blue-100 to-purple-100 p-4">
+    <div className="retro-app min-h-screen p-3 md:p-6">
       {/* nav */}
       <button
         onClick={() => setShowRulesModal(true)}
-        className=" bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 text-sm fixed bottom-4 right-4 z-50"
+        className="retro-fab font-bold py-2 px-4 text-sm fixed bottom-4 right-4 z-50"
       >
-        📖 Rules
+        [F1] HELP
       </button>
-      <div className="max-w-4xl mx-auto">
+      <div className="crt-shell max-w-4xl mx-auto">
+        <div className="system-bar">
+          <span>BASEBALL OS / 1987 EDITION</span>
+          <span className="system-status">● ONLINE</span>
+        </div>
         {/* Header */}
-        <div className="relative text-center my-8 animate-fade-in">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 animate-bounce-subtle">
-            Basebally Challenge
+        <div className="retro-header relative text-center my-8 animate-fade-in">
+          <div className="header-icon" aria-hidden="true">⚾</div>
+          <p className="command-prompt">C:\GAMES\MLB&gt; RUN TRIVIA.EXE</p>
+          <h1 className="text-3xl md:text-5xl font-bold mb-3">
+            BASEBALL.EXE
           </h1>
-          <p className="text-gray-700 text-lg font-medium">
-            How well do you know the game?
+          <p className="text-lg font-medium">
+            &gt; HOW WELL DO YOU KNOW THE GAME?<span className="blink-cursor">_</span>
           </p>
         </div>
 
@@ -306,47 +323,52 @@ export default function App() {
         {!currentGame?.game && (
           <div className="text-center animate-slide-up">
             {/* Game Mode Selector */}
-            <div className="bg-white rounded-xl shadow-xl p-6 mb-6 border-2 border-blue-200">
-              <h2 className="text-2xl font-bold text-blue-600 mb-4">
-                Choose Your Game Mode
+            <div className="retro-window p-6 mb-6">
+              <div className="window-titlebar mb-6">
+                <span>GAME_CONFIG.SYS</span>
+                <span className="window-controls">_ □ ×</span>
+              </div>
+              <h2 className="text-xl font-bold mb-5">
+                SELECT PLAYER DATABASE:
               </h2>
               <div className="flex gap-4 justify-center">
                 <button
                   onClick={() => setGameMode("batters")}
-                  className={`py-3 px-6 rounded-lg font-bold transition-all duration-300 ${
+                  className={`retro-choice py-3 px-6 font-bold ${
                     gameMode === "batters"
-                      ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "is-active"
+                      : ""
                   }`}
                 >
-                  🏏 Batters
+                  [1] BATTERS
                 </button>
                 <button
                   onClick={() => setGameMode("pitchers")}
-                  className={`py-3 px-6 rounded-lg font-bold transition-all duration-300 ${
+                  className={`retro-choice py-3 px-6 font-bold ${
                     gameMode === "pitchers"
-                      ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? "is-active"
+                      : ""
                   }`}
                 >
-                  ⚾ Pitchers
+                  [2] PITCHERS
                 </button>
               </div>
               <div className="flex justify-center mt-6">
                 <button
                   onClick={handleStartGame}
-                  className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105 animate-pulse-slow"
+                  className="retro-primary font-bold py-4 px-10"
                 >
-                  🚀 Start New Game
+                  ▶ BOOT NEW GAME
                 </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-2xl  w-full animate-slide-up">
+            <div className="retro-window w-full animate-slide-up">
               {/* Modal Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-2xl">
+              <div className="window-titlebar">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-3xl font-bold">📖 How to Play</h2>
+                  <h2 className="text-base font-bold">README.TXT — HOW TO PLAY</h2>
+                  <span className="window-controls">_ □ ×</span>
                 </div>
               </div>
 
@@ -449,15 +471,15 @@ export default function App() {
           !currentGame.game.isComplete &&
           !currentGame.player && (
             <div className="text-center animate-fade-in">
-              <div className="bg-white rounded-xl shadow-xl p-8 mb-6 border-2 border-blue-200">
-                <h2 className="text-3xl font-bold text-blue-600 mb-4">
-                  Batter steps to the plate...
+              <div className="retro-window p-8 mb-6">
+                <h2 className="text-2xl font-bold mb-4">
+                  ACCESSING PLAYER RECORD...
                 </h2>
-                <p className="text-gray-700">
-                  Please wait while we fetch your player...
+                <p>
+                  QUERY IN PROGRESS<span className="blink-cursor">_</span>
                 </p>
               </div>
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4 shadow-lg"></div>
+              <div className="pixel-ball mx-auto mb-4">⚾</div>
             </div>
           )}
         {/* Active game */}
@@ -466,7 +488,8 @@ export default function App() {
           currentGame.player && (
             <div className="space-y-6">
               {/* Progress and Score */}
-              <div className="bg-white rounded-xl shadow-xl p-6 border-2 border-blue-200 animate-slide-in">
+              <div className="retro-window status-window p-6 animate-slide-in">
+                <div className="window-titlebar mb-4">SESSION STATUS</div>
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex flex-1 flex-wrap justify-end items-center gap-3 w-full">
                     <div className="flex-1 text-md font-bold text-blue-600 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-full border-2 border-blue-200">
@@ -482,28 +505,30 @@ export default function App() {
                     )}
                   </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-4 shadow-inner">
+                <div className="retro-progress w-full h-5">
                   <div
-                    className="bg-gradient-to-r from-emerald-500 to-blue-600 h-4 rounded-full transition-all duration-700 ease-out shadow-lg text-white text-center text-xs"
+                    className="retro-progress-fill h-full transition-all duration-700 ease-out"
                     style={{
                       width: `${(currentGame.game.currentRound / 6) * 100}%`,
                     }}
-                  >
+                  />
+                  <span className="retro-progress-label text-xs">
                     Round {currentGame.game.currentRound} of 6
-                  </div>
+                  </span>
                 </div>
               </div>
 
               {/* Player Card */}
               <div
                 key={`${currentGame.player.playerId}-${currentGame.game.currentRound}`}
-                className="bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 rounded-2xl shadow-2xl p-8 border-4 border-gradient-to-r from-emerald-200 to-purple-200 transform hover:scale-105 transition-all duration-500 animate-slide-up"
+                className="retro-window player-terminal p-6 md:p-8 animate-slide-up"
               >
+                <div className="window-titlebar mb-6">PLAYER_CARD.DAT</div>
                 {/* Baseball Card Header */}
 
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-left">
-                    <h2 className="text-4xl font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent mb-1 animate-fade-in">
+                    <h2 className="text-3xl md:text-4xl font-bold mb-3 animate-fade-in">
                       {currentGame.player.name}
                     </h2>
                     <div className="flex-column items-center gap-4 text-lg">
@@ -539,14 +564,14 @@ export default function App() {
                         </div> */}
                     </div>
                   </div>
-                  <div className="text-8xl animate-bounce-slow">⚾</div>
+                  <div className="player-icon text-6xl md:text-8xl">⚾</div>
                 </div>
               </div>
 
               {/* Result Display */}
               {showResult && lastResult && (
-                <div className="bg-white rounded-lg shadow-lg p-6 text-center border-l-4 border-blue-500">
-                  <h3 className="text-xl font-semibold mb-2">Result</h3>
+                <div className="retro-window result-window p-6 text-center">
+                  <h3 className="text-xl font-semibold mb-2">&gt; RESULT.LOG</h3>
                   <p className="text-lg mb-2">
                     Actual rank:{" "}
                     <span className="font-bold text-blue-600">
@@ -563,46 +588,58 @@ export default function App() {
 
               {/* Category Selection */}
               {!showResult && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-stagger-in">
-                  {CATEGORIES.map((category, index) => {
-                    const isUsed =
-                      usedCategories?.includes(category.id) || false;
-                    return (
-                      <button
-                        key={category.id}
-                        onClick={() => {
-                          if (!isUsed) {
-                            void handleCategorySelect(category.id);
-                          }
-                        }}
-                        disabled={isUsed}
-                        className={`border-3 rounded-xl p-6 text-left transition-all duration-300 shadow-lg transform hover:scale-105 animate-delay-${index} ${
-                          isUsed
-                            ? "bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60"
-                            : "bg-gradient-to-br from-white to-blue-50 hover:from-emerald-50 hover:to-purple-50 border-blue-200 hover:border-emerald-400 hover:shadow-xl"
-                        }`}
-                        style={{
-                          animationDelay: `${index * 0.1}s`,
-                        }}
-                      >
-                        <h4
-                          className={`font-bold text-xl mb-3 ${isUsed ? "text-gray-400" : "text-emerald-600"}`}
+                <div>
+                  <div className="selection-prompt mb-5">
+                    <span className="selection-prompt-label">YOUR TURN</span>
+                    <div>
+                      <h3>CHOOSE THIS PLAYER'S BEST STAT</h3>
+                      <p>
+                        Select the category where you think they rank closest
+                        to #1. Each category can only be used once.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-stagger-in">
+                    {CATEGORIES.map((category, index) => {
+                      const isUsed =
+                        usedCategories?.includes(category.id) || false;
+                      return (
+                        <button
+                          key={category.id}
+                          onClick={() => {
+                            if (!isUsed) {
+                              void handleCategorySelect(category.id);
+                            }
+                          }}
+                          disabled={isUsed}
+                          className={`category-key p-6 text-left animate-delay-${index} ${
+                            isUsed
+                              ? "is-used cursor-not-allowed"
+                              : ""
+                          }`}
+                          style={{
+                            animationDelay: `${index * 0.1}s`,
+                          }}
                         >
-                          {category.name}
-                        </h4>
-                        <p
-                          className={`text-sm ${isUsed ? "text-gray-400" : "text-gray-700"}`}
-                        >
-                          {category.description}
-                        </p>
-                        {isUsed && (
-                          <p className="text-xs mt-3 font-bold text-red-500 bg-red-50 px-2 py-1 rounded-full">
-                            ✓ Already selected
+                          <h4
+                            className={`font-bold text-xl mb-3 ${isUsed ? "text-gray-400" : "text-emerald-600"}`}
+                          >
+                            {category.name}
+                          </h4>
+                          <p
+                            className={`text-sm ${isUsed ? "text-gray-400" : "text-gray-700"}`}
+                          >
+                            {category.description}
                           </p>
-                        )}
-                      </button>
-                    );
-                  })}
+                          {isUsed && (
+                            <p className="text-xs mt-3 font-bold text-red-500 bg-red-50 px-2 py-1 rounded-full">
+                              ✓ Already selected
+                            </p>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -633,21 +670,13 @@ export default function App() {
                 <div className="flex gap-3 justify-center">
                   <button
                     onClick={() => setGameMode("batters")}
-                    className={`py-2 px-4 rounded-lg font-bold transition-all duration-300 text-sm ${
-                      gameMode === "batters"
-                        ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
-                        : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                    }`}
+                    className={`retro-choice py-2 px-4 font-bold text-sm ${gameMode === "batters" ? "is-active" : ""}`}
                   >
                     🏏 Batters
                   </button>
                   <button
                     onClick={() => setGameMode("pitchers")}
-                    className={`py-2 px-4 rounded-lg font-bold transition-all duration-300 text-sm ${
-                      gameMode === "pitchers"
-                        ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
-                        : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                    }`}
+                    className={`retro-choice py-2 px-4 font-bold text-sm ${gameMode === "pitchers" ? "is-active" : ""}`}
                   >
                     ⚾ Pitchers
                   </button>
@@ -656,7 +685,7 @@ export default function App() {
 
               <button
                 onClick={handleStartGame}
-                className="bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold py-4 px-10 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
+                className="retro-primary font-bold py-4 px-10"
               >
                 🎮 Play Again (
                 {gameMode === "pitchers" ? "Pitchers" : "Batters"})
@@ -668,84 +697,134 @@ export default function App() {
         {/* Game End Modal */}
         {showGameEndModal && gameHistory && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
+            <div className="final-modal bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
               {/* Modal Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-green-600 text-white p-6 rounded-t-2xl">
-                <h2 className="text-3xl font-bold text-center mb-2">
-                  🎉 Final score!
+              <div className="final-modal-header text-white p-6">
+                <p className="final-eyebrow text-center mb-3">
+                  GAME SESSION COMPLETE
+                </p>
+                <h2 className="text-xl font-bold text-center mb-2">
+                  FINAL SCORE
                 </h2>
                 <div className="text-center">
-                  <div className="text-5xl font-bold mb-2">
+                  <div className="final-score-value font-bold mb-2">
                     {gameHistory.game.totalScore}
                   </div>
-                  <p className="text-xl opacity-90">
+                  <p className="final-score-rating text-xl mb-2">
                     {getScoreDescription(gameHistory.game.totalScore)}
+                  </p>
+                  <p className="text-xs opacity-90">
+                    LOWER IS BETTER • PERFECT SCORE: 6
                   </p>
                 </div>
               </div>
 
               {/* Modal Content */}
-              <div className="p-6">
-                {/* High Score Section */}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex gap-2">
-                      <h3 className="font-semibold text-yellow-800">
-                        🏆 Your Best Score
-                      </h3>
-                      <p className="text-yellow-700">
-                        {bestScore !== null ? `${bestScore}` : "First game!"}
-                      </p>
-                    </div>
-                    {gameHistory.game.totalScore < (bestScore || Infinity) && (
-                      <div className="text-yellow-600 font-bold">
-                        🆕 NEW RECORD!
-                      </div>
-                    )}
+              <div className="final-modal-content p-6">
+                <section className="final-section mb-6">
+                  <div className="section-heading mb-4">
+                    <span>01</span>
+                    <h3>YOUR PERFORMANCE</h3>
                   </div>
-                </div>
+                  {isNewPersonalBest && (
+                    <div className="new-record-banner mb-4">
+                      ★ NEW PERSONAL RECORD ★
+                    </div>
+                  )}
+                  <div className="performance-grid grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="metric-tile">
+                      <span>PERSONAL BEST</span>
+                      <strong>{bestScore !== null ? bestScore : "NEW"}</strong>
+                    </div>
+                    <div className="metric-tile">
+                      <span>PERFECT PICKS</span>
+                      <strong>
+                        {gameHistory.rounds.filter((r) => r.score === 1).length}
+                      </strong>
+                    </div>
+                    <div className="metric-tile">
+                      <span>TOP 10 PICKS</span>
+                      <strong>
+                        {
+                          gameHistory.rounds.filter(
+                            (r) => r.score && r.score <= 10
+                          ).length
+                        }
+                      </strong>
+                    </div>
+                    <div className="metric-tile">
+                      <span>AVG. RANK</span>
+                      <strong>
+                        #{Math.round(gameHistory.game.totalScore / 6)}
+                      </strong>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="next-game-panel mb-6">
+                  <div className="section-heading mb-4">
+                    <span>02</span>
+                    <h3>PLAY ANOTHER GAME</h3>
+                  </div>
+                  <p className="next-game-hint mb-3">
+                    SELECT A PLAYER DATABASE, THEN START:
+                  </p>
+                  <div className="flex gap-3 mb-4">
+                    <button
+                      onClick={() => setGameMode("batters")}
+                      className={`retro-choice flex-1 py-2 px-3 font-bold text-sm ${gameMode === "batters" ? "is-active" : ""}`}
+                    >
+                      🏏 BATTERS
+                    </button>
+                    <button
+                      onClick={() => setGameMode("pitchers")}
+                      className={`retro-choice flex-1 py-2 px-3 font-bold text-sm ${gameMode === "pitchers" ? "is-active" : ""}`}
+                    >
+                      ⚾ PITCHERS
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleStartGame}
+                    className="retro-primary w-full font-bold py-4 px-6"
+                  >
+                    ▶ START {gameMode === "pitchers" ? "PITCHERS" : "BATTERS"} GAME
+                  </button>
+                </section>
 
                 {/* Global High Scores Section */}
                 {highScores && (
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4 mb-6">
-                    <h3 className="font-semibold text-purple-800 mb-3">
-                      🌟 Global High Scores (
-                      {completedGameMode === "pitchers"
-                        ? "Pitchers"
-                        : "Batters"}
-                      )
-                    </h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white rounded-lg p-3 border border-purple-100">
-                        <div className="text-center">
-                          <div className="text-sm text-purple-600 font-medium">
-                            Today's Best
-                          </div>
-                          <div className="text-2xl font-bold text-purple-800">
-                            {highScores.todayBestScore !== null
-                              ? highScores.todayBestScore
-                              : "—"}
-                          </div>
-                          <div className="text-xs text-purple-500">
-                            {highScores.todayGamesCount} game
-                            {highScores.todayGamesCount !== 1 ? "s" : ""} played
-                          </div>
+                  <section className="final-section leaderboard-panel mb-6">
+                    <div className="section-heading mb-4">
+                      <span>03</span>
+                      <h3>
+                        GLOBAL LEADERBOARD / {completedGameMode === "pitchers"
+                          ? "PITCHERS"
+                          : "BATTERS"}
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="leaderboard-tile">
+                        <div className="text-sm font-medium">TODAY'S BEST</div>
+                        <strong>
+                          {highScores.todayBestScore !== null
+                            ? highScores.todayBestScore
+                            : "—"}
+                        </strong>
+                        <div className="text-xs">
+                          {highScores.todayGamesCount} GAME
+                          {highScores.todayGamesCount !== 1 ? "S" : ""} PLAYED
                         </div>
                       </div>
-                      <div className="bg-white rounded-lg p-3 border border-purple-100">
-                        <div className="text-center">
-                          <div className="text-sm text-purple-600 font-medium">
-                            Week's Best
-                          </div>
-                          <div className="text-2xl font-bold text-purple-800">
-                            {highScores.weekBestScore !== null
-                              ? highScores.weekBestScore
-                              : "—"}
-                          </div>
-                          <div className="text-xs text-purple-500">
-                            {highScores.weekGamesCount} game
-                            {highScores.weekGamesCount !== 1 ? "s" : ""} played
-                          </div>
+                      <div className="leaderboard-tile">
+                        <div className="text-sm font-medium">WEEK'S BEST</div>
+                        <strong>
+                          {highScores.weekBestScore !== null
+                            ? highScores.weekBestScore
+                            : "—"}
+                        </strong>
+                        <div className="text-xs">
+                          {highScores.weekGamesCount} GAME
+                          {highScores.weekGamesCount !== 1 ? "S" : ""} PLAYED
                         </div>
                       </div>
                     </div>
@@ -755,106 +834,31 @@ export default function App() {
                       {gameHistory.game.totalScore ===
                         highScores.todayBestScore &&
                         highScores.todayBestScore !== null && (
-                          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+                          <div className="champion-badge champion-today px-3 py-2 text-xs font-bold">
                             🥇 TODAY'S CHAMPION!
                           </div>
                         )}
                       {gameHistory.game.totalScore ===
                         highScores.weekBestScore &&
                         highScores.weekBestScore !== null && (
-                          <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">
+                          <div className="champion-badge champion-weekly px-3 py-2 text-xs font-bold">
                             👑 WEEKLY CHAMPION!
                           </div>
                         )}
                     </div>
-                  </div>
+                  </section>
                 )}
-                {/* Stats Summary */}
-                <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                  <h3 className="font-semibold text-blue-800 mb-2">
-                    Game Stats
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-blue-600">Perfect Picks:</span>
-                      <span className="font-semibold ml-2">
-                        {gameHistory.rounds.filter((r) => r.score === 1).length}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-blue-600">Top 10 Picks:</span>
-                      <span className="font-semibold ml-2">
-                        {
-                          gameHistory.rounds.filter(
-                            (r) => r.score && r.score <= 10
-                          ).length
-                        }
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-blue-600">Average:</span>
-                      <span className="font-semibold ml-2">
-                        #{Math.round(gameHistory.game.totalScore / 6)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-blue-600">Total Score:</span>
-                      <span className="font-semibold ml-2">
-                        {gameHistory.game.totalScore}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                {/* Game Mode Selector for Next Game */}
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-                  <h3 className="font-semibold text-gray-800 mb-3 text-center">
-                    Next Game Mode
-                  </h3>
-                  <div className="flex gap-3 justify-center">
-                    <button
-                      onClick={() => setGameMode("batters")}
-                      className={`py-2 px-4 rounded-lg font-bold transition-all duration-300 text-sm ${
-                        gameMode === "batters"
-                          ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
-                          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                      }`}
-                    >
-                      🏏 Batters
-                    </button>
-                    <button
-                      onClick={() => setGameMode("pitchers")}
-                      className={`py-2 px-4 rounded-lg font-bold transition-all duration-300 text-sm ${
-                        gameMode === "pitchers"
-                          ? "bg-gradient-to-r from-emerald-500 to-blue-600 text-white shadow-lg scale-105"
-                          : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
-                      }`}
-                    >
-                      ⚾ Pitchers
-                    </button>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3  bottom-4 left-0 right-0">
-                  <button
-                    onClick={handleStartGame}
-                    className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-600 hover:from-emerald-600 hover:to-blue-700 text-white font-bold py-4 px-8 my-5 rounded-xl transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-105"
-                  >
-                    🎮 Play Again (
-                    {gameMode === "pitchers" ? "Pitchers" : "Batters"})
-                  </button>
-                </div>
                 {/* Round Summary */}
-                <div className="mb-6">
-                  <h3 className="text-xl font-semibold mb-4">Round by Round</h3>
-                  <div className="space-y-3">
+                <details className="round-details mb-6">
+                  <summary>04 / VIEW ROUND-BY-ROUND RESULTS</summary>
+                  <div className="round-list space-y-2 pt-4">
                     {gameHistory.rounds.map((round, index) => (
                       <div
                         key={round._id}
-                        className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                        className="round-row flex justify-between items-center p-3"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-semibold text-sm">
+                          <div className="round-number w-8 h-8 flex items-center justify-center font-semibold text-sm">
                             {index + 1}
                           </div>
                           <div>
@@ -874,14 +878,14 @@ export default function App() {
                           </div>
                         </div>
                         <div
-                          className={`font-bold text-lg ${round.score && round.score <= 10 ? "text-green-600" : round.score && round.score <= 25 ? "text-yellow-600" : "text-red-600"}`}
+                          className={`round-rank font-bold text-lg ${round.score && round.score <= 10 ? "text-green-600" : round.score && round.score <= 25 ? "text-yellow-600" : "text-red-600"}`}
                         >
                           {round.score ? `#${round.score}` : "-"}
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
+                </details>
 
                 {/* Buy Me a Beer Button in Modal */}
                 <div className="text-center mt-4 pt-4 border-t border-gray-200">
@@ -1010,7 +1014,7 @@ export default function App() {
                 <div className="flex justify-center mt-6">
                   <button
                     onClick={() => setShowRulesModal(false)}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="retro-primary font-bold py-3 px-8"
                   >
                     Got it! 🚀
                   </button>

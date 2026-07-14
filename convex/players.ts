@@ -1,5 +1,6 @@
 "use node";
 
+import { v } from "convex/values";
 import { action } from "./_generated/server";
 
 // Using direct MLB Stats API calls for better reliability and control
@@ -183,11 +184,12 @@ async function fetchStatsFromAPI(): Promise<{
 
 async function selectRandomPlayer(
   playersMap: Map<string, any>,
-  categoryCounts: Record<string, number>
+  categoryCounts: Record<string, number>,
+  excludedPlayerIds: Set<string>
 ): Promise<PlayerStats | null> {
   const qualifiedPlayers = Array.from(playersMap.values()).filter((player) => {
     const categoryCount = Object.keys(player.stats).length;
-    return categoryCount >= 1;
+    return categoryCount >= 1 && !excludedPlayerIds.has(player.id);
   });
 
   console.log(
@@ -431,11 +433,14 @@ async function fetchPitchingStatsFromAPI(): Promise<{
 
 async function selectRandomPitcher(
   playersMap: Map<string, any>,
-  categoryCounts: Record<string, number>
+  categoryCounts: Record<string, number>,
+  excludedPlayerIds: Set<string>
 ): Promise<PitcherStats | null> {
   const qualifiedPlayers = Array.from(playersMap.values()).filter((player) => {
     const categoryCount = Object.keys(player.stats).length;
-    return categoryCount >= 3; // Require at least 3 stats for better quality
+    return (
+      categoryCount >= 3 && !excludedPlayerIds.has(player.id)
+    ); // Require at least 3 stats for better quality
   });
 
   console.log(
@@ -516,15 +521,16 @@ async function selectRandomPitcher(
 }
 
 export const getRandomPlayer = action({
-  args: {},
-  handler: async () => {
+  args: { excludedPlayerIds: v.optional(v.array(v.string())) },
+  handler: async (_, args) => {
     try {
       // Try to fetch real data from MLB Stats API
       const apiData = await fetchStatsFromAPI();
       if (apiData && apiData.players.size > 0) {
         const player = await selectRandomPlayer(
           apiData.players,
-          apiData.categoryCounts
+          apiData.categoryCounts,
+          new Set(args.excludedPlayerIds ?? [])
         );
         if (player) {
           console.log(`Selected player: ${player.name} (${player.team})`);
@@ -544,15 +550,16 @@ export const getRandomPlayer = action({
 });
 
 export const getRandomPitcher = action({
-  args: {},
-  handler: async () => {
+  args: { excludedPlayerIds: v.optional(v.array(v.string())) },
+  handler: async (_, args) => {
     try {
       // Try to fetch real data from MLB Stats API
       const apiData = await fetchPitchingStatsFromAPI();
       if (apiData && apiData.players.size > 0) {
         const pitcher = await selectRandomPitcher(
           apiData.players,
-          apiData.categoryCounts
+          apiData.categoryCounts,
+          new Set(args.excludedPlayerIds ?? [])
         );
         if (pitcher) {
           console.log(`Selected pitcher: ${pitcher.name} (${pitcher.team})`);

@@ -18,7 +18,9 @@ export const startNewGame = action({
       mode === "pitchers"
         ? api.players.getRandomPitcher
         : api.players.getRandomPlayer;
-    const playerResult: any = await ctx.runAction(playerAction, {});
+    const playerResult: any = await ctx.runAction(playerAction, {
+      excludedPlayerIds: [],
+    });
 
     if (!playerResult.success || !playerResult.player) {
       throw new Error("Failed to fetch first player");
@@ -149,7 +151,9 @@ export const selectCategory = action({
         result.gameMode === "pitchers"
           ? api.players.getRandomPitcher
           : api.players.getRandomPlayer;
-      const playerResult: any = await ctx.runAction(playerAction, {});
+      const playerResult: any = await ctx.runAction(playerAction, {
+        excludedPlayerIds: result.usedPlayerIds,
+      });
 
       if (playerResult.success && playerResult.player) {
         console.log(
@@ -195,6 +199,12 @@ export const updateRoundWithSelection = mutation({
 
     const player = currentRound.playerStats;
     if (!player) throw new Error("Player stats not found");
+
+    const rounds = await ctx.db
+      .query("rounds")
+      .withIndex("by_game", (q) => q.eq("gameId", game._id))
+      .collect();
+    const usedPlayerIds = rounds.map((round) => round.playerId);
 
     // Get the rank for the selected category based on game mode
     const gameMode = game.gameMode || "batters";
@@ -247,6 +257,7 @@ export const updateRoundWithSelection = mutation({
         gameId: game._id,
         nextRound: 0,
         gameMode,
+        usedPlayerIds,
       };
     } else {
       // Prepare for next round
@@ -263,6 +274,7 @@ export const updateRoundWithSelection = mutation({
         gameId: game._id,
         nextRound,
         gameMode,
+        usedPlayerIds,
       };
     }
   },
