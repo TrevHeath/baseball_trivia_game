@@ -79,6 +79,18 @@ export default function App() {
       setGameMode(currentGame?.game?.gameMode as "batters" | "pitchers"); // Default to "batters" if not set
   }, [currentGame]);
 
+  useEffect(() => {
+    const handleHelpShortcut = (event: KeyboardEvent) => {
+      if (event.key === "F1") {
+        event.preventDefault();
+        setShowRulesModal(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleHelpShortcut);
+    return () => window.removeEventListener("keydown", handleHelpShortcut);
+  }, []);
+
   const gameHistory = useQuery(api.game.getGameHistory, { sessionId });
   const allGameHistory = useQuery(api.game.getAllGameHistory, {
     sessionId,
