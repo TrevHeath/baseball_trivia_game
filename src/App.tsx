@@ -67,6 +67,7 @@ export default function App() {
     return localStorage.getItem("last-shown-game-id");
   });
   const [showRulesModal, setShowRulesModal] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [gameMode, setGameMode] = useState<"batters" | "pitchers">("batters");
 
   // Get current categories based on game mode
@@ -84,6 +85,10 @@ export default function App() {
       if (event.key === "F1") {
         event.preventDefault();
         setShowRulesModal(true);
+      }
+      if (event.key === "F2") {
+        event.preventDefault();
+        setShowLeaderboard(true);
       }
     };
 
@@ -303,11 +308,27 @@ export default function App() {
     );
   }
 
+  if (showLeaderboard) {
+    return (
+      <LeaderboardPage
+        sessionId={sessionId}
+        initialGameMode={gameMode}
+        onClose={() => setShowLeaderboard(false)}
+      />
+    );
+  }
+
   // usedCategories is now from the query above
 
   return (
     <div className="retro-app min-h-screen p-3 md:p-6">
       {/* nav */}
+      <button
+        onClick={() => setShowLeaderboard(true)}
+        className="retro-fab font-bold py-2 px-4 text-sm fixed bottom-4 left-4 z-50"
+      >
+        [F2] VIEW LEADERBOARD
+      </button>
       <button
         onClick={() => setShowRulesModal(true)}
         className="retro-fab font-bold py-2 px-4 text-sm fixed bottom-4 right-4 z-50"
@@ -858,6 +879,16 @@ export default function App() {
                           </div>
                         )}
                     </div>
+                    <button
+                      onClick={() => {
+                        setGameMode(completedGameMode as "batters" | "pitchers");
+                        setShowGameEndModal(false);
+                        setShowLeaderboard(true);
+                      }}
+                      className="retro-primary w-full mt-4 font-bold py-3 px-4"
+                    >
+                      ▶ VIEW FULL LEADERBOARD
+                    </button>
                   </section>
                 )}
                 {/* Round Summary */}
@@ -1067,4 +1098,133 @@ export default function App() {
 
 function getCategoriesByGameMode(gameMode: string | undefined) {
   return gameMode === "pitchers" ? PITCHER_CATEGORIES : BATTER_CATEGORIES;
+}
+
+type LeaderboardPeriod = "daily" | "weekly" | "allTime";
+
+function LeaderboardPage({
+  sessionId,
+  initialGameMode,
+  onClose,
+}: {
+  sessionId: string;
+  initialGameMode: "batters" | "pitchers";
+  onClose: () => void;
+}) {
+  const [gameMode, setGameMode] = useState(initialGameMode);
+  const [period, setPeriod] = useState<LeaderboardPeriod>("daily");
+  const leaderboard = useQuery(api.game.getLeaderboard, { sessionId, gameMode });
+  const board = leaderboard?.[period];
+
+  return (
+    <div className="retro-app min-h-screen p-3 md:p-6">
+      <div className="crt-shell leaderboard-shell max-w-5xl mx-auto">
+        <div className="system-bar">
+          <span>BASEBALL OS / HIGH SCORES</span>
+          <span className="system-status">● LIVE</span>
+        </div>
+
+        <header className="leaderboard-header text-center my-8">
+          <p className="command-prompt">C:\GAMES\MLB&gt; TYPE SCORES.DAT</p>
+          <h1>HIGH SCORES</h1>
+          <p>★ LOWER SCORES RULE THE DIAMOND ★</p>
+        </header>
+
+        <div className="leaderboard-controls retro-window p-4 mb-5">
+          <div className="window-titlebar mb-4">
+            <span>LEADERBOARD_CONFIG.SYS</span>
+            <span className="window-controls">_ □ ×</span>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="flex gap-2">
+              {(["daily", "weekly", "allTime"] as LeaderboardPeriod[]).map(
+                (value) => (
+                  <button
+                    key={value}
+                    onClick={() => setPeriod(value)}
+                    className={`retro-choice flex-1 py-2 px-2 font-bold ${period === value ? "is-active" : ""}`}
+                  >
+                    {value === "allTime" ? "ALL TIME" : value.toUpperCase()}
+                  </button>
+                )
+              )}
+            </div>
+            <div className="flex gap-2">
+              {(["batters", "pitchers"] as const).map((value) => (
+                <button
+                  key={value}
+                  onClick={() => setGameMode(value)}
+                  className={`retro-choice flex-1 py-2 px-2 font-bold ${gameMode === value ? "is-active" : ""}`}
+                >
+                  {value.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <section className="arcade-board retro-window">
+          <div className="window-titlebar">
+            <span>
+              {period === "allTime" ? "ALL TIME" : period.toUpperCase()} / {gameMode.toUpperCase()}
+            </span>
+            <span>{board ? `${board.gamesPlayed} GAMES` : "READING..."}</span>
+          </div>
+          <div className="arcade-column-head grid grid-cols-[3rem_1fr_5rem] md:grid-cols-[4rem_1fr_8rem_6rem] gap-2 px-4 py-3">
+            <span>RANK</span>
+            <span>PLAYER</span>
+            <span className="hidden md:block">DATE</span>
+            <span className="text-right">SCORE</span>
+          </div>
+
+          {!board && <div className="leaderboard-empty">LOADING SCORES<span className="blink-cursor">_</span></div>}
+          {board?.entries.length === 0 && (
+            <div className="leaderboard-empty">NO SCORES YET — BE THE FIRST!</div>
+          )}
+          <div className="score-list">
+            {board?.entries.map((entry: any) => (
+              <details className={`score-entry ${entry.isCurrentPlayer ? "is-you" : ""}`} key={entry.gameId}>
+                <summary className="grid grid-cols-[3rem_1fr_5rem] md:grid-cols-[4rem_1fr_8rem_6rem] gap-2 items-center px-4 py-4">
+                  <strong>{String(entry.rank).padStart(2, "0")}</strong>
+                  <span>{entry.isCurrentPlayer ? `${entry.playerCode} (YOU)` : entry.playerCode}</span>
+                  <time className="hidden md:block">
+                    {entry.completedAt
+                      ? new Date(entry.completedAt).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "2-digit",
+                        })
+                      : "LEGACY"}
+                  </time>
+                  <strong className="score-value text-right">{entry.totalScore}</strong>
+                </summary>
+                <div className="pick-log">
+                  <div className="pick-log-title">PICK LOG / CLICK SCORE ROW TO CLOSE</div>
+                  {entry.picks.map((pick: any) => {
+                    const category = getCategoriesByGameMode(gameMode).find(
+                      (item) => item.id === pick.selectedCategory
+                    );
+                    return (
+                      <div className="pick-row" key={`${entry.gameId}-${pick.roundNumber}`}>
+                        <span>{String(pick.roundNumber).padStart(2, "0")}</span>
+                        <strong>{pick.playerName}</strong>
+                        <span>{category?.name ?? pick.selectedCategory ?? "NO PICK"}</span>
+                        <strong>{pick.actualRank ? `#${pick.actualRank}` : "—"}</strong>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        <div className="flex justify-center mt-6">
+          <button onClick={onClose} className="retro-primary font-bold py-3 px-8">
+            ◀ RETURN TO GAME
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -453,3 +453,103 @@ export const getHighScores = query({
     };
   },
 });
+
+export const getLeaderboard = query({
+  args: {
+    sessionId: v.string(),
+    gameMode: v.union(v.literal("batters"), v.literal("pitchers")),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const pacificParts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Los_Angeles",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZoneName: "shortOffset",
+    }).formatToParts(new Date(now));
+    const part = (type: Intl.DateTimeFormatPartTypes) =>
+      pacificParts.find((item) => item.type === type)?.value ?? "";
+    const offsetMatch = part("timeZoneName").match(/GMT([+-]\d+)/);
+    const offsetHours = Number(offsetMatch?.[1] ?? -8);
+    const startOfToday =
+      Date.UTC(Number(part("year")), Number(part("month")) - 1, Number(part("day"))) -
+      offsetHours * 60 * 60 * 1000;
+    const weekStart = startOfToday - 7 * 24 * 60 * 60 * 1000;
+
+    const completedGames = await ctx.db
+      .query("games")
+      .filter((q) => q.eq(q.field("isComplete"), true))
+      .collect();
+
+    const modeGames = completedGames.filter((game) =>
+      args.gameMode === "pitchers"
+        ? game.gameMode === "pitchers"
+        : game.gameMode === "batters" || game.gameMode === undefined
+    );
+
+    const playerCode = (sessionId: string) => {
+      let hash = 0;
+      for (const character of sessionId) {
+        hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+      }
+      return `PLY-${(hash % 46656).toString(36).toUpperCase().padStart(3, "0")}`;
+    };
+
+    const makeBoard = async (games: typeof modeGames) => {
+      const rankedGames = [...games]
+        .sort(
+          (a, b) =>
+            a.totalScore - b.totalScore ||
+            (a.completedAt ?? a._creationTime) -
+              (b.completedAt ?? b._creationTime)
+        )
+        .slice(0, 10);
+
+      return Promise.all(
+        rankedGames.map(async (game, index) => {
+          const rounds = await ctx.db
+            .query("rounds")
+            .withIndex("by_game", (q) => q.eq("gameId", game._id))
+            .collect();
+
+          return {
+            gameId: game._id,
+            rank: index + 1,
+            playerCode: playerCode(game.sessionId),
+            isCurrentPlayer: game.sessionId === args.sessionId,
+            totalScore: game.totalScore,
+            completedAt: game.completedAt,
+            picks: rounds
+              .sort((a, b) => a.roundNumber - b.roundNumber)
+              .map((round) => ({
+                roundNumber: round.roundNumber,
+                playerName: round.playerName,
+                selectedCategory: round.selectedCategory,
+                actualRank: round.actualRank,
+              })),
+          };
+        })
+      );
+    };
+
+    const todayGames = modeGames.filter(
+      (game) => game.completedAt !== undefined && game.completedAt >= startOfToday
+    );
+    const weekGames = modeGames.filter(
+      (game) => game.completedAt !== undefined && game.completedAt >= weekStart
+    );
+
+    const [daily, weekly, allTime] = await Promise.all([
+      makeBoard(todayGames),
+      makeBoard(weekGames),
+      makeBoard(modeGames),
+    ]);
+
+    return {
+      daily: { entries: daily, gamesPlayed: todayGames.length },
+      weekly: { entries: weekly, gamesPlayed: weekGames.length },
+      allTime: { entries: allTime, gamesPlayed: modeGames.length },
+    };
+  },
+});
