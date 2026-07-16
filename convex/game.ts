@@ -2,15 +2,28 @@ import { v } from "convex/values";
 import { query, mutation, action } from "./_generated/server";
 import { api } from "./_generated/api";
 
+function getGameSeasonYear(game: {
+  seasonYear?: number;
+  _creationTime: number;
+}) {
+  return game.seasonYear ?? new Date(game._creationTime).getFullYear();
+}
+
 export const startNewGame = action({
-  args: { sessionId: v.string(), gameMode: v.optional(v.string()) },
+  args: {
+    sessionId: v.string(),
+    gameMode: v.optional(v.string()),
+    seasonYear: v.optional(v.number()),
+  },
   handler: async (ctx, args): Promise<any> => {
     const mode = args.gameMode || "batters";
+    const seasonYear = args.seasonYear ?? new Date().getFullYear();
 
     // Create the game first, then fetch the first player
     const gameId: any = await ctx.runMutation(api.game.createNewGame, {
       sessionId: args.sessionId,
       gameMode: mode,
+      seasonYear,
     });
 
     // Fetch the first player for round 1 based on game mode
@@ -20,6 +33,7 @@ export const startNewGame = action({
         : api.players.getRandomPlayer;
     const playerResult: any = await ctx.runAction(playerAction, {
       excludedPlayerIds: [],
+      seasonYear,
     });
 
     if (!playerResult.success || !playerResult.player) {
@@ -41,6 +55,7 @@ export const createNewGame = mutation({
   args: {
     sessionId: v.string(),
     gameMode: v.optional(v.string()),
+    seasonYear: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     // End any existing game for this session, but only if all 6 rounds are filled
@@ -69,6 +84,7 @@ export const createNewGame = mutation({
       totalScore: 0,
       isComplete: false,
       gameMode: args.gameMode || "batters",
+      seasonYear: args.seasonYear ?? new Date().getFullYear(),
     });
 
     return gameId;
@@ -139,7 +155,7 @@ export const selectCategory = action({
       {
         sessionId: args.sessionId,
         category: args.category,
-      }
+      },
     );
 
     // If game is not complete, fetch next player
@@ -153,11 +169,12 @@ export const selectCategory = action({
           : api.players.getRandomPlayer;
       const playerResult: any = await ctx.runAction(playerAction, {
         excludedPlayerIds: result.usedPlayerIds,
+        seasonYear: result.seasonYear,
       });
 
       if (playerResult.success && playerResult.player) {
         console.log(
-          `Adding new player: ${playerResult.player.name} for round ${result.nextRound}`
+          `Adding new player: ${playerResult.player.name} for round ${result.nextRound}`,
         );
         await ctx.runMutation(api.game.addRoundWithPlayer, {
           gameId: result.gameId,
@@ -208,6 +225,7 @@ export const updateRoundWithSelection = mutation({
 
     // Get the rank for the selected category based on game mode
     const gameMode = game.gameMode || "batters";
+    const seasonYear = getGameSeasonYear(game);
     let categoryRankMap: Record<string, number>;
 
     if (gameMode === "pitchers") {
@@ -257,6 +275,7 @@ export const updateRoundWithSelection = mutation({
         gameId: game._id,
         nextRound: 0,
         gameMode,
+        seasonYear,
         usedPlayerIds,
       };
     } else {
@@ -274,6 +293,7 @@ export const updateRoundWithSelection = mutation({
         gameId: game._id,
         nextRound,
         gameMode,
+        seasonYear,
         usedPlayerIds,
       };
     }
@@ -302,6 +322,27 @@ export const getUsedCategories = query({
   },
 });
 
+export const abandonCurrentGame = mutation({
+  args: { sessionId: v.string() },
+  handler: async (ctx, args) => {
+    const game = await ctx.db
+      .query("games")
+      .withIndex("by_session", (q) => q.eq("sessionId", args.sessionId))
+      .filter((q) => q.eq(q.field("isComplete"), false))
+      .first();
+
+    if (!game) return;
+
+    const rounds = await ctx.db
+      .query("rounds")
+      .withIndex("by_game", (q) => q.eq("gameId", game._id))
+      .collect();
+
+    await Promise.all(rounds.map((round) => ctx.db.delete(round._id)));
+    await ctx.db.delete(game._id);
+  },
+});
+
 export const getGameHistory = query({
   args: { sessionId: v.string() },
   handler: async (ctx, args) => {
@@ -327,7 +368,11 @@ export const getGameHistory = query({
 });
 
 export const getAllGameHistory = query({
-  args: { sessionId: v.string(), gameMode: v.optional(v.string()) },
+  args: {
+    sessionId: v.string(),
+    gameMode: v.optional(v.string()),
+    seasonYear: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
     let completedGames = ctx.db
       .query("games")
@@ -337,26 +382,31 @@ export const getAllGameHistory = query({
     if (args.gameMode === "pitchers") {
       // For pitchers, only include games explicitly marked as pitchers
       completedGames = completedGames.filter((q) =>
-        q.eq(q.field("gameMode"), "pitchers")
+        q.eq(q.field("gameMode"), "pitchers"),
       );
     } else if (args.gameMode === "batters") {
       // For batters, include both "batters" and undefined (backwards compatibility)
       completedGames = completedGames.filter((q) =>
         q.or(
           q.eq(q.field("gameMode"), "batters"),
-          q.eq(q.field("gameMode"), undefined)
-        )
+          q.eq(q.field("gameMode"), undefined),
+        ),
       );
     }
 
     const cgs = await completedGames.order("desc").collect();
 
-    return cgs;
+    return args.seasonYear === undefined
+      ? cgs
+      : cgs.filter((game) => getGameSeasonYear(game) === args.seasonYear);
   },
 });
 
 export const getHighScores = query({
-  args: { gameMode: v.optional(v.string()) },
+  args: {
+    gameMode: v.optional(v.string()),
+    seasonYear: v.optional(v.number()),
+  },
   handler: async (ctx, args) => {
     // Get current time in PST/PDT
     const now = new Date();
@@ -386,7 +436,7 @@ export const getHighScores = query({
     const startOfTodayPST = new Date(
       pstNow.getFullYear(),
       pstNow.getMonth(),
-      pstNow.getDate()
+      pstNow.getDate(),
     );
     // Convert back to UTC timestamp for database comparison
     const startOfTodayUTC =
@@ -409,29 +459,35 @@ export const getHighScores = query({
     if (args.gameMode === "pitchers") {
       // For pitchers, only include games explicitly marked as pitchers
       gamesQuery = gamesQuery.filter((q) =>
-        q.eq(q.field("gameMode"), "pitchers")
+        q.eq(q.field("gameMode"), "pitchers"),
       );
     } else if (args.gameMode === "batters") {
       // For batters, include both "batters" and undefined (backwards compatibility)
       gamesQuery = gamesQuery.filter((q) =>
         q.or(
           q.eq(q.field("gameMode"), "batters"),
-          q.eq(q.field("gameMode"), undefined)
-        )
+          q.eq(q.field("gameMode"), undefined),
+        ),
       );
     }
     // If args.gameMode is undefined, include all games (no additional filter)
 
-    const allCompletedGames = await gamesQuery.collect();
+    const completedGames = await gamesQuery.collect();
+    const allCompletedGames =
+      args.seasonYear === undefined
+        ? completedGames
+        : completedGames.filter(
+            (game) => getGameSeasonYear(game) === args.seasonYear,
+          );
 
     // Filter for today's games (since midnight PST)
     const todayGames = allCompletedGames.filter(
-      (game) => game.completedAt && game.completedAt >= startOfTodayUTC
+      (game) => game.completedAt && game.completedAt >= startOfTodayUTC,
     );
 
     // Filter for last 7 days (since midnight PST 7 days ago)
     const weekGames = allCompletedGames.filter(
-      (game) => game.completedAt && game.completedAt >= startOfSevenDaysAgoUTC
+      (game) => game.completedAt && game.completedAt >= startOfSevenDaysAgoUTC,
     );
 
     // Find best (lowest) scores
@@ -458,6 +514,7 @@ export const getLeaderboard = query({
   args: {
     sessionId: v.string(),
     gameMode: v.union(v.literal("batters"), v.literal("pitchers")),
+    seasonYear: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -473,7 +530,11 @@ export const getLeaderboard = query({
     const offsetMatch = part("timeZoneName").match(/GMT([+-]\d+)/);
     const offsetHours = Number(offsetMatch?.[1] ?? -8);
     const startOfToday =
-      Date.UTC(Number(part("year")), Number(part("month")) - 1, Number(part("day"))) -
+      Date.UTC(
+        Number(part("year")),
+        Number(part("month")) - 1,
+        Number(part("day")),
+      ) -
       offsetHours * 60 * 60 * 1000;
     const weekStart = startOfToday - 7 * 24 * 60 * 60 * 1000;
 
@@ -482,10 +543,13 @@ export const getLeaderboard = query({
       .filter((q) => q.eq(q.field("isComplete"), true))
       .collect();
 
-    const modeGames = completedGames.filter((game) =>
-      args.gameMode === "pitchers"
-        ? game.gameMode === "pitchers"
-        : game.gameMode === "batters" || game.gameMode === undefined
+    const modeGames = completedGames.filter(
+      (game) =>
+        (args.gameMode === "pitchers"
+          ? game.gameMode === "pitchers"
+          : game.gameMode === "batters" || game.gameMode === undefined) &&
+        (args.seasonYear === undefined ||
+          getGameSeasonYear(game) === args.seasonYear),
     );
 
     const playerCode = (sessionId: string) => {
@@ -502,7 +566,7 @@ export const getLeaderboard = query({
           (a, b) =>
             a.totalScore - b.totalScore ||
             (a.completedAt ?? a._creationTime) -
-              (b.completedAt ?? b._creationTime)
+              (b.completedAt ?? b._creationTime),
         )
         .slice(0, 10);
 
@@ -520,6 +584,7 @@ export const getLeaderboard = query({
             isCurrentPlayer: game.sessionId === args.sessionId,
             totalScore: game.totalScore,
             completedAt: game.completedAt,
+            seasonYear: getGameSeasonYear(game),
             picks: rounds
               .sort((a, b) => a.roundNumber - b.roundNumber)
               .map((round) => ({
@@ -529,15 +594,16 @@ export const getLeaderboard = query({
                 actualRank: round.actualRank,
               })),
           };
-        })
+        }),
       );
     };
 
     const todayGames = modeGames.filter(
-      (game) => game.completedAt !== undefined && game.completedAt >= startOfToday
+      (game) =>
+        game.completedAt !== undefined && game.completedAt >= startOfToday,
     );
     const weekGames = modeGames.filter(
-      (game) => game.completedAt !== undefined && game.completedAt >= weekStart
+      (game) => game.completedAt !== undefined && game.completedAt >= weekStart,
     );
 
     const [daily, weekly, allTime] = await Promise.all([

@@ -1,4 +1,4 @@
-import { useQuery, useAction } from "convex/react";
+import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useState, useEffect } from "react";
 import { Toaster, toast } from "sonner";
@@ -45,11 +45,26 @@ const PITCHER_CATEGORIES = [
   },
 ];
 
+const CURRENT_SEASON_YEAR = new Date().getFullYear();
+const SEASON_YEARS = Array.from(
+  { length: CURRENT_SEASON_YEAR - 2020 + 1 },
+  (_, index) => CURRENT_SEASON_YEAR - index,
+);
+
+function getGameSeasonYear(game: any) {
+  return (
+    game?.seasonYear ??
+    (game?._creationTime
+      ? new Date(game._creationTime).getFullYear()
+      : CURRENT_SEASON_YEAR)
+  );
+}
+
 export default function App() {
   const [sessionId] = useState(() => {
     // Check if sessionId exists in localStorage
     const existingSessionId = localStorage.getItem(
-      "baseball-trivia-session-id"
+      "baseball-trivia-session-id",
     );
     if (existingSessionId) {
       return existingSessionId;
@@ -69,6 +84,7 @@ export default function App() {
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [gameMode, setGameMode] = useState<"batters" | "pitchers">("batters");
+  const [seasonYear, setSeasonYear] = useState(CURRENT_SEASON_YEAR);
 
   // Get current categories based on game mode
   const CATEGORIES = getCategoriesByGameMode(gameMode);
@@ -76,8 +92,10 @@ export default function App() {
   const currentGame = useQuery(api.game.getCurrentGame, { sessionId });
 
   useEffect(() => {
-    if (currentGame?.game?.gameMode && !currentGame.game.isComplete)
+    if (currentGame?.game?.gameMode && !currentGame.game.isComplete) {
       setGameMode(currentGame?.game?.gameMode as "batters" | "pitchers"); // Default to "batters" if not set
+      setSeasonYear(getGameSeasonYear(currentGame.game));
+    }
   }, [currentGame]);
 
   useEffect(() => {
@@ -100,15 +118,21 @@ export default function App() {
   const allGameHistory = useQuery(api.game.getAllGameHistory, {
     sessionId,
     gameMode: gameHistory?.game?.gameMode,
+    seasonYear: gameHistory?.game
+      ? getGameSeasonYear(gameHistory.game)
+      : seasonYear,
   });
   const usedCategories = useQuery(api.game.getUsedCategories, { sessionId });
   // Get high scores for the specific game mode of the completed game
   const completedGameMode = gameHistory?.game?.gameMode || "batters";
+  const completedSeasonYear = getGameSeasonYear(gameHistory?.game);
   const highScores = useQuery(api.game.getHighScores, {
     gameMode: completedGameMode,
+    seasonYear: completedSeasonYear,
   });
   const startNewGame = useAction(api.game.startNewGame);
   const selectCategory = useAction(api.game.selectCategory);
+  const abandonCurrentGame = useMutation(api.game.abandonCurrentGame);
 
   // Calculate best score from all games
   const bestScore =
@@ -116,7 +140,7 @@ export default function App() {
       ? Math.min(...allGameHistory.map((game: any) => game.totalScore))
       : null;
   const previousScores = allGameHistory?.filter(
-    (game: any) => game._id !== gameHistory?.game?._id
+    (game: any) => game._id !== gameHistory?.game?._id,
   );
   const previousBestScore =
     previousScores && previousScores.length > 0
@@ -152,7 +176,22 @@ export default function App() {
     setShowResult(false);
     setLastResult(null);
     setShowGameEndModal(false);
-    void startNewGame({ sessionId, gameMode });
+    void startNewGame({ sessionId, gameMode, seasonYear });
+  };
+
+  const handleReturnToMainMenu = async () => {
+    if (
+      !window.confirm(
+        "Return to the main menu? Current game progress will be lost.",
+      )
+    ) {
+      return;
+    }
+
+    await abandonCurrentGame({ sessionId });
+    setShowResult(false);
+    setLastResult(null);
+    setShowGameEndModal(false);
   };
 
   const handleCategorySelect = async (categoryId: string) => {
@@ -168,7 +207,7 @@ export default function App() {
         const currentGameMode = currentGame.game?.gameMode || "batters";
         const bestCategory = findBestCategory(
           currentGame.player,
-          currentGameMode
+          currentGameMode,
         );
         const actualRank = result.actualRank;
 
@@ -184,21 +223,21 @@ export default function App() {
             `🎯 Great choice! #${actualRank} in ${selectedCategoryName}`,
             {
               duration: 3000,
-            }
+            },
           );
         } else if (categoryId === bestCategory.category) {
           toast.success(
             `👏 You found their best category! #${actualRank} in ${selectedCategoryName}`,
             {
               duration: 3000,
-            }
+            },
           );
         } else {
           toast.info(
             `Their best stat was ${bestCategory.name} (#${bestCategory.rank}). You chose ${selectedCategoryName} (#${actualRank})`,
             {
               duration: 4000,
-            }
+            },
           );
         }
       }
@@ -335,6 +374,14 @@ export default function App() {
       >
         [F1] HELP
       </button>
+      {currentGame?.game && (
+        <button
+          onClick={() => void handleReturnToMainMenu()}
+          className="retro-fab font-bold py-2 px-4 text-sm fixed top-4 right-4 z-50"
+        >
+          ◀ MAIN MENU
+        </button>
+      )}
       <div className="crt-shell max-w-4xl mx-auto">
         <div className="system-bar">
           <span>BASEBALL OS / 1987 EDITION</span>
@@ -343,7 +390,9 @@ export default function App() {
         {/* Header */}
         {!currentGame?.game && (
           <div className="retro-header relative text-center my-8 animate-fade-in">
-            <div className="header-icon" aria-hidden="true">⚾</div>
+            <div className="header-icon" aria-hidden="true">
+              ⚾
+            </div>
             <p className="command-prompt">C:\GAMES\MLB&gt; RUN TRIVIA.EXE</p>
             <h1 className="text-3xl md:text-5xl font-bold mb-3">
               BASEBALL.EXE
@@ -371,9 +420,7 @@ export default function App() {
                 <button
                   onClick={() => setGameMode("batters")}
                   className={`retro-choice py-3 px-6 font-bold ${
-                    gameMode === "batters"
-                      ? "is-active"
-                      : ""
+                    gameMode === "batters" ? "is-active" : ""
                   }`}
                 >
                   [1] BATTERS
@@ -381,13 +428,30 @@ export default function App() {
                 <button
                   onClick={() => setGameMode("pitchers")}
                   className={`retro-choice py-3 px-6 font-bold ${
-                    gameMode === "pitchers"
-                      ? "is-active"
-                      : ""
+                    gameMode === "pitchers" ? "is-active" : ""
                   }`}
                 >
                   [2] PITCHERS
                 </button>
+              </div>
+              <div className="mt-6 max-w-xs mx-auto text-left">
+                <label className="block font-bold mb-2" htmlFor="season-year">
+                  SELECT MLB SEASON:
+                </label>
+                <select
+                  id="season-year"
+                  value={seasonYear}
+                  onChange={(event) =>
+                    setSeasonYear(Number(event.target.value))
+                  }
+                  className="retro-choice w-full py-3 px-4 font-bold"
+                >
+                  {SEASON_YEARS.map((year) => (
+                    <option key={year} value={year}>
+                      {year} SEASON
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex justify-center mt-6">
                 <button
@@ -403,7 +467,9 @@ export default function App() {
               {/* Modal Header */}
               <div className="window-titlebar">
                 <div className="flex justify-between items-center">
-                  <h2 className="text-base font-bold">README.TXT — HOW TO PLAY</h2>
+                  <h2 className="text-base font-bold">
+                    README.TXT — HOW TO PLAY
+                  </h2>
                   <span className="window-controls">_ □ ×</span>
                 </div>
               </div>
@@ -525,7 +591,9 @@ export default function App() {
             <div className="space-y-6">
               {/* Progress and Score */}
               <div className="retro-window status-window p-6 animate-slide-in">
-                <div className="window-titlebar mb-4">SESSION STATUS</div>
+                <div className="window-titlebar mb-4">
+                  SESSION STATUS / {getGameSeasonYear(currentGame.game)} SEASON
+                </div>
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex flex-1 flex-wrap justify-end items-center gap-3 w-full">
                     <div className="flex-1 text-md font-bold text-blue-600 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-full border-2 border-blue-200">
@@ -607,7 +675,9 @@ export default function App() {
               {/* Result Display */}
               {showResult && lastResult && (
                 <div className="retro-window result-window p-6 text-center">
-                  <h3 className="text-xl font-semibold mb-2">&gt; RESULT.LOG</h3>
+                  <h3 className="text-xl font-semibold mb-2">
+                    &gt; RESULT.LOG
+                  </h3>
                   <p className="text-lg mb-2">
                     Actual rank:{" "}
                     <span className="font-bold text-blue-600">
@@ -639,9 +709,7 @@ export default function App() {
                           }}
                           disabled={isUsed}
                           className={`category-key p-6 text-left animate-delay-${index} ${
-                            isUsed
-                              ? "is-used cursor-not-allowed"
-                              : ""
+                            isUsed ? "is-used cursor-not-allowed" : ""
                           }`}
                           style={{
                             animationDelay: `${index * 0.1}s`,
@@ -707,6 +775,20 @@ export default function App() {
                     ⚾ Pitchers
                   </button>
                 </div>
+                <select
+                  value={seasonYear}
+                  onChange={(event) =>
+                    setSeasonYear(Number(event.target.value))
+                  }
+                  className="retro-choice w-full mt-3 py-2 px-4 font-bold text-sm"
+                  aria-label="MLB season"
+                >
+                  {SEASON_YEARS.map((year) => (
+                    <option key={year} value={year}>
+                      {year} Season
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <button
@@ -773,7 +855,7 @@ export default function App() {
                       <strong>
                         {
                           gameHistory.rounds.filter(
-                            (r) => r.score && r.score <= 10
+                            (r) => r.score && r.score <= 10,
                           ).length
                         }
                       </strong>
@@ -809,11 +891,26 @@ export default function App() {
                       ⚾ PITCHERS
                     </button>
                   </div>
+                  <select
+                    value={seasonYear}
+                    onChange={(event) =>
+                      setSeasonYear(Number(event.target.value))
+                    }
+                    className="retro-choice w-full mb-4 py-2 px-3 font-bold text-sm"
+                    aria-label="MLB season"
+                  >
+                    {SEASON_YEARS.map((year) => (
+                      <option key={year} value={year}>
+                        {year} SEASON
+                      </option>
+                    ))}
+                  </select>
                   <button
                     onClick={handleStartGame}
                     className="retro-primary w-full font-bold py-4 px-6"
                   >
-                    ▶ START {gameMode === "pitchers" ? "PITCHERS" : "BATTERS"} GAME
+                    ▶ START {gameMode === "pitchers" ? "PITCHERS" : "BATTERS"}{" "}
+                    GAME
                   </button>
                 </section>
 
@@ -823,9 +920,11 @@ export default function App() {
                     <div className="section-heading mb-4">
                       <span>03</span>
                       <h3>
-                        GLOBAL LEADERBOARD / {completedGameMode === "pitchers"
+                        GLOBAL LEADERBOARD /{" "}
+                        {completedGameMode === "pitchers"
                           ? "PITCHERS"
-                          : "BATTERS"}
+                          : "BATTERS"}{" "}
+                        / {completedSeasonYear}
                       </h3>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -874,7 +973,10 @@ export default function App() {
                     </div>
                     <button
                       onClick={() => {
-                        setGameMode(completedGameMode as "batters" | "pitchers");
+                        setGameMode(
+                          completedGameMode as "batters" | "pitchers",
+                        );
+                        setSeasonYear(completedSeasonYear);
                         setShowGameEndModal(false);
                         setShowLeaderboard(true);
                       }}
@@ -905,7 +1007,7 @@ export default function App() {
                               <div className="text-sm text-gray-600">
                                 {
                                   getCategoriesByGameMode(
-                                    gameHistory.game.gameMode
+                                    gameHistory.game.gameMode,
                                   ).find((c) => c.id === round.selectedCategory)
                                     ?.name
                                 }
@@ -986,7 +1088,9 @@ export default function App() {
                         • Lower scores are better - a perfect game scores just 6
                         points!
                       </li>
-                      <li>• Using MLB stats from the current season!</li>
+                      <li>
+                        • Choose which MLB season's stats you want to play!
+                      </li>
                       <li>
                         • Players not qualified for a category will be ranked
                         last in that category.
@@ -1105,8 +1209,14 @@ function LeaderboardPage({
   onClose: () => void;
 }) {
   const [gameMode, setGameMode] = useState(initialGameMode);
-  const [period, setPeriod] = useState<LeaderboardPeriod>("daily");
-  const leaderboard = useQuery(api.game.getLeaderboard, { sessionId, gameMode });
+  const [period, setPeriod] = useState<LeaderboardPeriod>("allTime");
+  const [leaderboardSeason, setLeaderboardSeason] =
+    useState<number | "all">("all");
+  const leaderboard = useQuery(api.game.getLeaderboard, {
+    sessionId,
+    gameMode,
+    seasonYear: leaderboardSeason === "all" ? undefined : leaderboardSeason,
+  });
   const board = leaderboard?.[period];
 
   return (
@@ -1128,7 +1238,7 @@ function LeaderboardPage({
             <span>LEADERBOARD_CONFIG.SYS</span>
             <span className="window-controls">_ □ ×</span>
           </div>
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div className="flex gap-2">
               {(["daily", "weekly", "allTime"] as LeaderboardPeriod[]).map(
                 (value) => (
@@ -1139,7 +1249,7 @@ function LeaderboardPage({
                   >
                     {value === "allTime" ? "ALL TIME" : value.toUpperCase()}
                   </button>
-                )
+                ),
               )}
             </div>
             <div className="flex gap-2">
@@ -1153,13 +1263,34 @@ function LeaderboardPage({
                 </button>
               ))}
             </div>
+            <select
+              value={leaderboardSeason}
+              onChange={(event) =>
+                setLeaderboardSeason(
+                  event.target.value === "all"
+                    ? "all"
+                    : Number(event.target.value),
+                )
+              }
+              className="retro-choice w-full py-2 px-3 font-bold"
+              aria-label="Leaderboard MLB season"
+            >
+              <option value="all">ALL YEARS</option>
+              {SEASON_YEARS.map((year) => (
+                <option key={year} value={year}>
+                  {year} SEASON
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
         <section className="arcade-board retro-window">
           <div className="window-titlebar">
             <span>
-              {period === "allTime" ? "ALL TIME" : period.toUpperCase()} / {gameMode.toUpperCase()}
+              {period === "allTime" ? "ALL TIME" : period.toUpperCase()} /{" "}
+              {gameMode.toUpperCase()} /{" "}
+              {leaderboardSeason === "all" ? "ALL YEARS" : leaderboardSeason}
             </span>
             <span>{board ? `${board.gamesPlayed} GAMES` : "READING..."}</span>
           </div>
@@ -1170,39 +1301,67 @@ function LeaderboardPage({
             <span className="text-right">SCORE</span>
           </div>
 
-          {!board && <div className="leaderboard-empty">LOADING SCORES<span className="blink-cursor">_</span></div>}
+          {!board && (
+            <div className="leaderboard-empty">
+              LOADING SCORES<span className="blink-cursor">_</span>
+            </div>
+          )}
           {board?.entries.length === 0 && (
-            <div className="leaderboard-empty">NO SCORES YET — BE THE FIRST!</div>
+            <div className="leaderboard-empty">
+              NO SCORES YET — BE THE FIRST!
+            </div>
           )}
           <div className="score-list">
             {board?.entries.map((entry: any) => (
-              <details className={`score-entry ${entry.isCurrentPlayer ? "is-you" : ""}`} key={entry.gameId}>
+              <details
+                className={`score-entry ${entry.isCurrentPlayer ? "is-you" : ""}`}
+                key={entry.gameId}
+              >
                 <summary className="grid grid-cols-[3rem_1fr_5rem] md:grid-cols-[4rem_1fr_8rem_6rem] gap-2 items-center px-4 py-4">
                   <strong>{String(entry.rank).padStart(2, "0")}</strong>
-                  <span>{entry.isCurrentPlayer ? `${entry.playerCode} (YOU)` : entry.playerCode}</span>
+                  <span>
+                    {entry.isCurrentPlayer
+                      ? `${entry.playerCode} (YOU)`
+                      : entry.playerCode}
+                    {leaderboardSeason === "all" && ` / ${entry.seasonYear}`}
+                  </span>
                   <time className="hidden md:block">
                     {entry.completedAt
-                      ? new Date(entry.completedAt).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "2-digit",
-                        })
+                      ? new Date(entry.completedAt).toLocaleDateString(
+                          undefined,
+                          {
+                            month: "short",
+                            day: "numeric",
+                            year: "2-digit",
+                          },
+                        )
                       : "LEGACY"}
                   </time>
-                  <strong className="score-value text-right">{entry.totalScore}</strong>
+                  <strong className="score-value text-right">
+                    {entry.totalScore}
+                  </strong>
                 </summary>
                 <div className="pick-log">
-                  <div className="pick-log-title">PICK LOG / CLICK SCORE ROW TO CLOSE</div>
+                  <div className="pick-log-title">
+                    PICK LOG / CLICK SCORE ROW TO CLOSE
+                  </div>
                   {entry.picks.map((pick: any) => {
                     const category = getCategoriesByGameMode(gameMode).find(
-                      (item) => item.id === pick.selectedCategory
+                      (item) => item.id === pick.selectedCategory,
                     );
                     return (
-                      <div className="pick-row" key={`${entry.gameId}-${pick.roundNumber}`}>
+                      <div
+                        className="pick-row"
+                        key={`${entry.gameId}-${pick.roundNumber}`}
+                      >
                         <span>{String(pick.roundNumber).padStart(2, "0")}</span>
                         <strong>{pick.playerName}</strong>
-                        <span>{category?.name ?? pick.selectedCategory ?? "NO PICK"}</span>
-                        <strong>{pick.actualRank ? `#${pick.actualRank}` : "—"}</strong>
+                        <span>
+                          {category?.name ?? pick.selectedCategory ?? "NO PICK"}
+                        </span>
+                        <strong>
+                          {pick.actualRank ? `#${pick.actualRank}` : "—"}
+                        </strong>
                       </div>
                     );
                   })}
@@ -1213,7 +1372,10 @@ function LeaderboardPage({
         </section>
 
         <div className="flex justify-center mt-6">
-          <button onClick={onClose} className="retro-primary font-bold py-3 px-8">
+          <button
+            onClick={onClose}
+            className="retro-primary font-bold py-3 px-8"
+          >
             ◀ RETURN TO GAME
           </button>
         </div>

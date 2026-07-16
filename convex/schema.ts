@@ -10,9 +10,10 @@ const applicationTables = {
     isComplete: v.boolean(),
     completedAt: v.optional(v.number()),
     gameMode: v.optional(v.string()), // "batters" or "pitchers"
+    seasonYear: v.optional(v.number()),
     // Removed players array - no longer needed
   }).index("by_session", ["sessionId"]),
-  
+
   rounds: defineTable({
     gameId: v.id("games"),
     roundNumber: v.number(),
