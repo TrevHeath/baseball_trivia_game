@@ -341,16 +341,19 @@ export default function App() {
           <span className="system-status">● ONLINE</span>
         </div>
         {/* Header */}
-        <div className="retro-header relative text-center my-8 animate-fade-in">
-          <div className="header-icon" aria-hidden="true">⚾</div>
-          <p className="command-prompt">C:\GAMES\MLB&gt; RUN TRIVIA.EXE</p>
-          <h1 className="text-3xl md:text-5xl font-bold mb-3">
-            BASEBALL.EXE
-          </h1>
-          <p className="text-lg font-medium">
-            &gt; HOW WELL DO YOU KNOW THE GAME?<span className="blink-cursor">_</span>
-          </p>
-        </div>
+        {!currentGame?.game && (
+          <div className="retro-header relative text-center my-8 animate-fade-in">
+            <div className="header-icon" aria-hidden="true">⚾</div>
+            <p className="command-prompt">C:\GAMES\MLB&gt; RUN TRIVIA.EXE</p>
+            <h1 className="text-3xl md:text-5xl font-bold mb-3">
+              BASEBALL.EXE
+            </h1>
+            <p className="text-lg font-medium">
+              &gt; HOW WELL DO YOU KNOW THE GAME?
+              <span className="blink-cursor">_</span>
+            </p>
+          </div>
+        )}
 
         {/* Game not started */}
         {!currentGame?.game && (
@@ -622,16 +625,6 @@ export default function App() {
               {/* Category Selection */}
               {!showResult && (
                 <div>
-                  <div className="selection-prompt mb-5">
-                    <span className="selection-prompt-label">YOUR TURN</span>
-                    <div>
-                      <h3>CHOOSE THIS PLAYER'S BEST STAT</h3>
-                      <p>
-                        Select the category where you think they rank closest
-                        to #1. Each category can only be used once.
-                      </p>
-                    </div>
-                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-stagger-in">
                     {CATEGORIES.map((category, index) => {
                       const isUsed =

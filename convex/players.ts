@@ -84,7 +84,7 @@ async function fetchStatsFromAPI(): Promise<{
 
     const promises = statCategories.map(async (category) => {
       // Use improved query with playerPool and sportId for better results
-      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=hitting&limit=100&sportId=1&playerPool=QUALIFIED&playerActive=Y`;
+      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=hitting&limit=100&sportId=1&playerPool=QUALIFIED`;
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -106,7 +106,7 @@ async function fetchStatsFromAPI(): Promise<{
 
         while (hasMore && offset < 500) {
           // Safety limit
-          const paginatedUrl = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=hitting&limit=100&offset=${offset}&sportId=1&playerPool=QUALIFIED&playerActive=Y`;
+          const paginatedUrl = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=hitting&limit=100&offset=${offset}&sportId=1&playerPool=QUALIFIED`;
           const paginatedResponse = await fetch(paginatedUrl);
 
           if (paginatedResponse.ok) {
@@ -333,7 +333,7 @@ async function fetchPitchingStatsFromAPI(): Promise<{
 
     const promises = statCategories.map(async (category) => {
       // Use improved query with playerPool and sportId for better results
-      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=pitching&limit=100&sportId=1&playerPool=QUALIFIED&playerActive=Y`;
+      const url = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=pitching&limit=100&sportId=1&playerPool=QUALIFIED`;
 
       const response = await fetch(url);
       if (!response.ok) {
@@ -355,7 +355,7 @@ async function fetchPitchingStatsFromAPI(): Promise<{
 
         while (hasMore && offset < 500) {
           // Safety limit
-          const paginatedUrl = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=pitching&limit=100&offset=${offset}&sportId=1&playerPool=QUALIFIED&playerActive=Y`;
+          const paginatedUrl = `${baseUrl}/stats/leaders?leaderCategories=${category}&season=${currentYear}&statGroup=pitching&limit=100&offset=${offset}&sportId=1&playerPool=QUALIFIED`;
           const paginatedResponse = await fetch(paginatedUrl);
 
           if (paginatedResponse.ok) {
