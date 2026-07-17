@@ -387,6 +387,33 @@ body {
   box-shadow: 5px 5px 0 #000, 0 0 28px rgba(255, 214, 102, 0.52);
 }
 
+.floating-menu {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.floating-menu-actions {
+  display: flex;
+  align-items: stretch;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.floating-menu-actions .retro-fab {
+  min-width: 12rem;
+  text-align: left;
+}
+
+.floating-menu-toggle {
+  min-width: 7.5rem;
+}
+
 .retro-choice:active,
 .retro-primary:active,
 .retro-fab:active,
@@ -806,6 +833,49 @@ body {
 .result-window {
   color: var(--amber);
   border-color: var(--amber);
+}
+
+.session-metric {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #d9e7dc;
+  border-color: #3b8f54;
+  background: #06130c;
+  box-shadow: inset 0 0 1rem rgba(62, 255, 101, 0.06);
+}
+
+.session-metric-label,
+.session-result-label {
+  color: #b7c9bb;
+  letter-spacing: 0.08em;
+}
+
+.session-score-value {
+  color: var(--amber);
+  font-size: 1.35rem;
+  text-shadow: 0 0 7px rgba(255, 189, 69, 0.45);
+}
+
+.session-rank-value {
+  color: var(--phosphor);
+  font-size: 1.35rem;
+  text-shadow: 0 0 7px rgba(109, 255, 141, 0.45);
+}
+
+.session-result {
+  color: #f1fff4;
+  border-color: #8c6723;
+  background: #101a0d;
+}
+
+.session-result-label {
+  color: var(--amber);
+}
+
+.session-result-message {
+  color: #f1fff4;
 }
 
 .boot-screen {

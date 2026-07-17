@@ -86,6 +86,7 @@ export default function App() {
   });
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showFloatingMenu, setShowFloatingMenu] = useState(false);
   const [gameMode, setGameMode] = useState<"batters" | "pitchers">("batters");
   const [seasonYear, setSeasonYear] = useState(CURRENT_SEASON_YEAR);
 
@@ -105,10 +106,12 @@ export default function App() {
     const handleHelpShortcut = (event: KeyboardEvent) => {
       if (event.key === "F1") {
         event.preventDefault();
+        setShowFloatingMenu(false);
         setShowRulesModal(true);
       }
       if (event.key === "F2") {
         event.preventDefault();
+        setShowFloatingMenu(false);
         setShowLeaderboard(true);
       }
     };
@@ -347,26 +350,50 @@ export default function App() {
   return (
     <div className="retro-app min-h-screen p-3 md:p-6">
       {/* nav */}
-      <button
-        onClick={() => setShowLeaderboard(true)}
-        className="retro-fab font-bold py-2 px-4 text-sm fixed bottom-4 left-4 z-50"
-      >
-        [F2] VIEW LEADERBOARD
-      </button>
-      <button
-        onClick={() => setShowRulesModal(true)}
-        className="retro-fab font-bold py-2 px-4 text-sm fixed bottom-4 right-4 z-50"
-      >
-        [F1] HELP
-      </button>
-      {currentGame?.game && (
+      <div className="floating-menu">
+        {showFloatingMenu && (
+          <div className="floating-menu-actions" id="game-menu-actions">
+            {currentGame?.game && (
+              <button
+                onClick={() => {
+                  setShowFloatingMenu(false);
+                  void handleReturnToMainMenu();
+                }}
+                className="retro-fab font-bold py-2 px-4 text-sm"
+              >
+                ◀ MAIN MENU
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setShowFloatingMenu(false);
+                setShowLeaderboard(true);
+              }}
+              className="retro-fab font-bold py-2 px-4 text-sm"
+            >
+              [F2] LEADERBOARD
+            </button>
+            <button
+              onClick={() => {
+                setShowFloatingMenu(false);
+                setShowRulesModal(true);
+              }}
+              className="retro-fab font-bold py-2 px-4 text-sm"
+            >
+              [F1] HELP
+            </button>
+          </div>
+        )}
         <button
-          onClick={() => void handleReturnToMainMenu()}
-          className="retro-fab font-bold py-2 px-4 text-sm fixed top-4 right-4 z-50"
+          onClick={() => setShowFloatingMenu((isOpen) => !isOpen)}
+          className="retro-fab floating-menu-toggle font-bold py-3 px-4 text-sm"
+          aria-expanded={showFloatingMenu}
+          aria-controls="game-menu-actions"
+          aria-label={showFloatingMenu ? "Close game menu" : "Open game menu"}
         >
-          ◀ MAIN MENU
+          {showFloatingMenu ? "× CLOSE" : "☰ MENU"}
         </button>
-      )}
+      </div>
       <div className="crt-shell max-w-4xl mx-auto">
         <div className="system-bar">
           <span>BASEBALL OS / 1987 EDITION</span>
@@ -581,29 +608,34 @@ export default function App() {
                 </div>
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex flex-1 flex-wrap justify-end items-center gap-3 w-full">
-                    <div className="flex-1 text-md font-bold text-blue-600 bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2 rounded-full border-2 border-blue-200">
-                      Score:{" "}
-                      <span className="text-purple-600">
+                    <div className="session-metric flex-1 text-md font-bold px-4 py-2 border-2">
+                      <span className="session-metric-label">SCORE</span>
+                      <span className="session-score-value">
                         {currentGame.game.totalScore}
                       </span>
                     </div>
                     {lastResult && (
-                      <div className="flex-1 text-md font-bold text-emerald-600 bg-gradient-to-r from-emerald-50 to-purple-50 px-4 py-2 rounded-full border-2 border-emerald-200">
-                        Last: #{lastResult.actualRank}
+                      <div className="session-metric flex-1 text-md font-bold px-4 py-2 border-2">
+                        <span className="session-metric-label">LAST RANK</span>
+                        <span className="session-rank-value">
+                          #{lastResult.actualRank}
+                        </span>
                       </div>
                     )}
                   </div>
                 </div>
                 {lastResultMessage && (
                   <div
-                    className="mb-4 border-2 border-emerald-200 bg-emerald-50 px-4 py-3 font-bold text-emerald-800"
+                    className="session-result mb-4 border-2 px-4 py-3 font-bold"
                     role="status"
                     aria-live="polite"
                   >
-                    <span className="block mb-1 text-xs text-emerald-600">
+                    <span className="session-result-label block mb-1 text-xs">
                       LAST ROUND RESULT
                     </span>
-                    {lastResultMessage}
+                    <span className="session-result-message">
+                      {lastResultMessage}
+                    </span>
                   </div>
                 )}
                 <div className="retro-progress w-full h-5">
