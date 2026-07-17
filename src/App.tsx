@@ -1,7 +1,7 @@
 import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useState, useEffect } from "react";
-import { Toaster, toast } from "sonner";
+import { Toaster } from "sonner";
 
 const BATTER_CATEGORIES = [
   {
@@ -77,6 +77,9 @@ export default function App() {
   });
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
+  const [lastResultMessage, setLastResultMessage] = useState<string | null>(
+    null,
+  );
   const [showGameEndModal, setShowGameEndModal] = useState(false);
   const [lastShownGameId, setLastShownGameId] = useState<string | null>(() => {
     return localStorage.getItem("last-shown-game-id");
@@ -175,6 +178,7 @@ export default function App() {
   const handleStartGame = () => {
     setShowResult(false);
     setLastResult(null);
+    setLastResultMessage(null);
     setShowGameEndModal(false);
     void startNewGame({ sessionId, gameMode, seasonYear });
   };
@@ -191,6 +195,7 @@ export default function App() {
     await abandonCurrentGame({ sessionId });
     setShowResult(false);
     setLastResult(null);
+    setLastResultMessage(null);
     setShowGameEndModal(false);
   };
 
@@ -202,7 +207,6 @@ export default function App() {
       setLastResult(result);
       setShowResult(true);
 
-      // Show toast feedback based on performance
       if (currentGame.player) {
         const currentGameMode = currentGame.game?.gameMode || "batters";
         const bestCategory = findBestCategory(
@@ -215,29 +219,20 @@ export default function App() {
           CATEGORIES.find((c) => c.id === categoryId)?.name || categoryId;
 
         if (actualRank === 1) {
-          toast.success(`🏆 Perfect! They are #1 in ${selectedCategoryName}!`, {
-            duration: 3000,
-          });
+          setLastResultMessage(
+            `🏆 Perfect! They are #1 in ${selectedCategoryName}!`,
+          );
         } else if (actualRank <= 10) {
-          toast.success(
+          setLastResultMessage(
             `🎯 Great choice! #${actualRank} in ${selectedCategoryName}`,
-            {
-              duration: 3000,
-            },
           );
         } else if (categoryId === bestCategory.category) {
-          toast.success(
+          setLastResultMessage(
             `👏 You found their best category! #${actualRank} in ${selectedCategoryName}`,
-            {
-              duration: 3000,
-            },
           );
         } else {
-          toast.info(
+          setLastResultMessage(
             `Their best stat was ${bestCategory.name} (#${bestCategory.rank}). You chose ${selectedCategoryName} (#${actualRank})`,
-            {
-              duration: 4000,
-            },
           );
         }
       }
@@ -248,6 +243,9 @@ export default function App() {
         // Keep lastResult so the badge persists between rounds
         // Force a reactive update by invalidating the query
         // The new player should already be in the database from the selectCategory action
+        if (!result.isGameComplete) {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
       }, 100);
     } catch (error) {
       console.error("Error selecting category:", error);
@@ -330,19 +328,6 @@ export default function App() {
             LOADING MLB DATABASE<span className="blink-cursor">_</span>
           </p>
         </div>
-        <Toaster
-          position="top-right"
-          richColors
-          closeButton
-          theme="light"
-          toastOptions={{
-            style: {
-              fontSize: "16px",
-              padding: "16px 20px",
-              minHeight: "64px",
-            },
-          }}
-        />
       </div>
     );
   }
@@ -609,6 +594,18 @@ export default function App() {
                     )}
                   </div>
                 </div>
+                {lastResultMessage && (
+                  <div
+                    className="mb-4 border-2 border-emerald-200 bg-emerald-50 px-4 py-3 font-bold text-emerald-800"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <span className="block mb-1 text-xs text-emerald-600">
+                      LAST ROUND RESULT
+                    </span>
+                    {lastResultMessage}
+                  </div>
+                )}
                 <div className="retro-progress w-full h-5">
                   <div
                     className="retro-progress-fill h-full transition-all duration-700 ease-out"
@@ -671,26 +668,6 @@ export default function App() {
                   <div className="player-icon text-6xl md:text-8xl">⚾</div>
                 </div>
               </div>
-
-              {/* Result Display */}
-              {showResult && lastResult && (
-                <div className="retro-window result-window p-6 text-center">
-                  <h3 className="text-xl font-semibold mb-2">
-                    &gt; RESULT.LOG
-                  </h3>
-                  <p className="text-lg mb-2">
-                    Actual rank:{" "}
-                    <span className="font-bold text-blue-600">
-                      #{lastResult.actualRank}
-                    </span>
-                  </p>
-                  <p className="text-gray-600">
-                    {lastResult.isGameComplete
-                      ? "Game complete!"
-                      : "Next player coming up..."}
-                  </p>
-                </div>
-              )}
 
               {/* Category Selection */}
               {!showResult && (
@@ -1177,7 +1154,6 @@ export default function App() {
           },
         }}
       />
-
       {/* Buy Me a Beer Button */}
       <div className="text-center mt-8">
         <a
