@@ -1000,17 +1000,6 @@ export default function App() {
                     </button>
                   </section>
                 )}
-                {/* Buy Me a Beer Button in Modal */}
-                <div className="text-center mt-4 pt-4 border-t border-gray-200">
-                  <a
-                    href="https://buymeacoffee.com/trevheath7w"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition-colors text-sm"
-                  >
-                    🍺 Buy me a beer
-                  </a>
-                </div>
               </div>
             </div>
           </div>
@@ -1152,17 +1141,6 @@ export default function App() {
           },
         }}
       />
-      {/* Buy Me a Beer Button */}
-      <div className="text-center mt-8">
-        <a
-          href="https://buymeacoffee.com/trevheath7w"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-full shadow-lg transition-colors text-sm"
-        >
-          🍺 Buy me a beer
-        </a>
-      </div>
     </div>
   );
 }
