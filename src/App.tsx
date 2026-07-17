@@ -121,13 +121,6 @@ export default function App() {
   }, []);
 
   const gameHistory = useQuery(api.game.getGameHistory, { sessionId });
-  const allGameHistory = useQuery(api.game.getAllGameHistory, {
-    sessionId,
-    gameMode: gameHistory?.game?.gameMode,
-    seasonYear: gameHistory?.game
-      ? getGameSeasonYear(gameHistory.game)
-      : seasonYear,
-  });
   const usedCategories = useQuery(api.game.getUsedCategories, { sessionId });
   // Get high scores for the specific game mode of the completed game
   const completedGameMode = gameHistory?.game?.gameMode || "batters";
@@ -139,23 +132,6 @@ export default function App() {
   const startNewGame = useAction(api.game.startNewGame);
   const selectCategory = useAction(api.game.selectCategory);
   const abandonCurrentGame = useMutation(api.game.abandonCurrentGame);
-
-  // Calculate best score from all games
-  const bestScore =
-    allGameHistory && allGameHistory.length > 0
-      ? Math.min(...allGameHistory.map((game: any) => game.totalScore))
-      : null;
-  const previousScores = allGameHistory?.filter(
-    (game: any) => game._id !== gameHistory?.game?._id,
-  );
-  const previousBestScore =
-    previousScores && previousScores.length > 0
-      ? Math.min(...previousScores.map((game: any) => game.totalScore))
-      : null;
-  const isNewPersonalBest =
-    gameHistory?.game?.totalScore !== undefined &&
-    (previousBestScore === null ||
-      gameHistory.game.totalScore < previousBestScore);
 
   // Check for game completion and show modal
   useEffect(() => {
@@ -843,16 +819,7 @@ export default function App() {
                     <span>01</span>
                     <h3>YOUR PERFORMANCE</h3>
                   </div>
-                  {isNewPersonalBest && (
-                    <div className="new-record-banner mb-4">
-                      ★ NEW PERSONAL RECORD ★
-                    </div>
-                  )}
-                  <div className="performance-grid grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="metric-tile">
-                      <span>PERSONAL BEST</span>
-                      <strong>{bestScore !== null ? bestScore : "NEW"}</strong>
-                    </div>
+                  <div className="performance-grid grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="metric-tile">
                       <span>PERFECT PICKS</span>
                       <strong>
@@ -876,6 +843,44 @@ export default function App() {
                       </strong>
                     </div>
                   </div>
+                  <details className="round-details mt-4">
+                    <summary>VIEW ROUND-BY-ROUND RESULTS</summary>
+                    <div className="round-list space-y-2 pt-4">
+                      {gameHistory.rounds.map((round, index) => (
+                        <div
+                          key={round._id}
+                          className="round-row flex justify-between items-center p-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="round-number w-8 h-8 flex items-center justify-center font-semibold text-sm">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <span className="font-medium">
+                                {round.playerName}
+                              </span>
+                              {round.selectedCategory && (
+                                <div className="text-sm text-gray-600">
+                                  {
+                                    getCategoriesByGameMode(
+                                      gameHistory.game.gameMode,
+                                    ).find(
+                                      (c) => c.id === round.selectedCategory,
+                                    )?.name
+                                  }
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div
+                            className={`round-rank font-bold text-lg ${round.score && round.score <= 10 ? "text-green-600" : round.score && round.score <= 25 ? "text-yellow-600" : "text-red-600"}`}
+                          >
+                            {round.score ? `#${round.score}` : "-"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                 </section>
 
                 <section className="next-game-panel mb-6">
@@ -995,45 +1000,6 @@ export default function App() {
                     </button>
                   </section>
                 )}
-                {/* Round Summary */}
-                <details className="round-details mb-6">
-                  <summary>04 / VIEW ROUND-BY-ROUND RESULTS</summary>
-                  <div className="round-list space-y-2 pt-4">
-                    {gameHistory.rounds.map((round, index) => (
-                      <div
-                        key={round._id}
-                        className="round-row flex justify-between items-center p-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="round-number w-8 h-8 flex items-center justify-center font-semibold text-sm">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <span className="font-medium">
-                              {round.playerName}
-                            </span>
-                            {round.selectedCategory && (
-                              <div className="text-sm text-gray-600">
-                                {
-                                  getCategoriesByGameMode(
-                                    gameHistory.game.gameMode,
-                                  ).find((c) => c.id === round.selectedCategory)
-                                    ?.name
-                                }
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div
-                          className={`round-rank font-bold text-lg ${round.score && round.score <= 10 ? "text-green-600" : round.score && round.score <= 25 ? "text-yellow-600" : "text-red-600"}`}
-                        >
-                          {round.score ? `#${round.score}` : "-"}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </details>
-
                 {/* Buy Me a Beer Button in Modal */}
                 <div className="text-center mt-4 pt-4 border-t border-gray-200">
                   <a
